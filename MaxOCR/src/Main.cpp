@@ -10,8 +10,8 @@
 #include "FullyConnectedLayer.h"
 #include "SoftmaxLayer.h"
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/core/core.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 
 static unsigned char** read_mnist_images(std::string full_path, int& number_of_images, int& image_size) {
 	
