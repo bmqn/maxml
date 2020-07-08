@@ -2,7 +2,7 @@
 bin/
 obj/
 
-vendor/opencv/
+vendor/opencv
 
 # Visual Studio files and folder
 .vs/
