@@ -2,8 +2,6 @@
 bin/
 obj/
 
-vendor/opencv
-
 # Visual Studio files and folder
 .vs/
 **.sln
