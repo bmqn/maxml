@@ -1,6 +1,8 @@
 # Binaries
-bin/
-obj/
+**/bin/
+**/obj/
+
+!vendor/bin/premake/
 
 # Visual Studio files and folder
 .vs/
