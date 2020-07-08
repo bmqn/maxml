@@ -91,10 +91,10 @@ int main()
 	unsigned char** mnist_images;
 	unsigned char* mnist_labels;
 
-	ConvolutionLayer layer1(1, 28, 28, 3, 8);
-	ReluLayer layer2(8, 26, 26);
-	MaxPoolLayer layer3(8, 26, 26, 2);
-	FullyConnectedLayer layer4(8, 13, 13, 10);
+	ConvolutionLayer layer1(1, 28, 28, 3, 16);
+	ReluLayer layer2(16, 26, 26);
+	MaxPoolLayer layer3(16, 26, 26, 2);
+	FullyConnectedLayer layer4(16, 13, 13, 10);
 	SoftmaxLayer layer5(10);
 
 	Tensor<float> input(1, 28, 28);
@@ -109,17 +109,13 @@ int main()
 		mnist_images = read_mnist_images("assets/train-images.idx3-ubyte", number_of_images, image_size);
 		mnist_labels = read_mnist_labels("assets/train-labels.idx1-ubyte", number_of_labels);
 
-		int totalIterations = 0;
-
-		for (int e = 0; e < 50; e++)
+		for (int e = 0; e < 10; e++)
 		{
 			float totalLoss = 0.0f;
-			int totalCorrect = 0.0f;
+			float totalCorrect = 0.0f;
 
-			for (int k = 0; k < number_of_images; k++)
+			for (int index = 0; index < number_of_images; index++)
 			{
-				int index = k;
-
 				// INPUT IMAGE
 				for (int i = 0; i < 28; i++)
 					for (int j = 0; j < 28; j++)
@@ -149,32 +145,29 @@ int main()
 				for (int i = 0; i < output.sX; i++)
 					loss -= expected(i, 0, 0) * log(std::max(0.00001f, output(i, 0, 0)));
 
-				if (k % 10000 == 0) std::cout << "Loss: " << std::setprecision(5) << loss << std::endl;
-
 				// INITIAL GRADIENT
 				for (int i = 0; i < dL_dy.sX; i++)
 					dL_dy(i, 0, 0) = -expected(i, 0, 0) / (output(i, 0, 0) + 0.001f);
 
-				float lr = 0.001f / (1.0f + (float)e / 5.0f);
+				float lr = 0.0008f / (1.0f + (float)e / 1.0f);
 
 				// BACKPROPAGATION
 				layer1.backwardPropagate(layer2.backwardPropagate(layer3.backwardPropagate(layer4.backwardPropagate(layer5.backwardPropagate(dL_dy), lr))), lr);
 
-
 				totalLoss += loss;
-				totalCorrect += correct ? 1 : 0;
+				totalCorrect += correct ? 1.0f : 0.0f;
+
+				if (index % 500 == 0)
+				{
+					std::cout
+						<< "[Epoch: " << (e + 1) << ", It: " << index << "/" << number_of_images << "]: "
+						<< "Loss: " << std::setprecision(5) << totalLoss / (float)index << ", "
+						<< "Accuracy: " << std::setprecision(5) << totalCorrect / (float)index * 100 << "%"
+						<< '\r' << std::flush;
+				}
 			}
 
-			totalIterations += number_of_images;
-
-			float avgLoss = totalLoss / (float)number_of_images;
-			float avgCorrect = (float)totalCorrect / (float)number_of_images;
-
-			std::cout
-				<< "[Epoch: " << (e + 1) << ", It: " << totalIterations << "]: "
-				<< "Loss: " << std::setprecision(5) << avgLoss
-				<< ", Accuracy: " << std::setprecision(5) << (avgCorrect * 100) << "%"
-				<< std::endl;
+			std::cout << std::endl;
 		}
 	}
 

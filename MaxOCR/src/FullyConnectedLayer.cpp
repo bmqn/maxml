@@ -46,7 +46,7 @@ const Tensor<float>& FullyConnectedLayer::forwardPropagate(const Tensor<float>& 
 
 const Tensor<float>& FullyConnectedLayer::backwardPropagate(const Tensor<float>& dout, float learningRate)
 {
-	memset(dinput.data, 0.0f, dinput.sX * dinput.sY * dinput.sZ * sizeof(float));
+	memset(dinput.data.get(), 0.0f, dinput.sX * dinput.sY * dinput.sZ * sizeof(float));
 
 	for (int j = 0; j < output.sX; j++)
 	{	

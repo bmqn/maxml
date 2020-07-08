@@ -6,29 +6,23 @@
 template<typename T>
 struct Tensor
 {
-	T* data;
+	std::shared_ptr<T[]> data;
 	int sX, sY, sZ;
 
 	Tensor() = delete;
 
 	Tensor(int x, int y, int z) : sX(x), sY(y), sZ(z)
 	{
-		data = new T[x * y * z];
+		data = std::make_unique<T[]>(x * y * z);
 	}
 
 	Tensor(const Tensor<T>& other) : sX(other.sX), sY(other.sY), sZ(other.sZ)
 	{
-		data = new T[other.sX * other.sY * other.sZ];
-		memcpy(this->data, other.data, other.sX * other.sY * other.sZ * sizeof(T));
+		data = std::make_unique<T[]>(x * y * z);
+		memcpy(this->data.get(), other.data.get(), other.sX * other.sY * other.sZ * sizeof(T));
 	}
 
-	~Tensor()
-	{
-		if (data)
-			delete[] data;
-	}
-
-	const Tensor<T>& operator= (const Tensor<T>& other)
+	/*const Tensor<T>& operator= (const Tensor<T>& other)
 	{
 		if (this == &other)
 			return *this;
@@ -46,7 +40,7 @@ struct Tensor
 		memcpy(this->data, other.data, other.sX * other.sY * other.sZ * sizeof(T));
 		
 		return *this;
-	}
+	}*/
 
 	T& operator()(int x, int y, int z)
 	{

@@ -30,7 +30,7 @@ const Tensor<float>& SoftmaxLayer::forwardPropagate(const Tensor<float>& input)
 
 const Tensor<float>& SoftmaxLayer::backwardPropagate(const Tensor<float>& dout)
 {
-	memset(dinput.data, 0.0f, dinput.sX * dinput.sY * dinput.sZ * sizeof(float));
+	memset(dinput.data.get(), 0.0f, dinput.sX * dinput.sY * dinput.sZ * sizeof(float));
 
 	for (int p = 0; p < input.sX; p++)
 		for (int i = 0; i < output.sX; i++)
