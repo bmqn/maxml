@@ -9,6 +9,7 @@
 #include "MaxPoolLayer.h"
 #include "FullyConnectedLayer.h"
 #include "SoftmaxLayer.h"
+#include "ReluLayer.h"
 
 //#include <opencv2/core/core.hpp>
 //#include <opencv2/highgui/highgui.hpp>
@@ -90,38 +91,34 @@ int main()
 	unsigned char** mnist_images;
 	unsigned char* mnist_labels;
 
-	srand(time(NULL));
-
 	ConvolutionLayer layer1(1, 28, 28, 3, 8);
-	MaxPoolLayer layer2(8, 26, 26, 2);
-	FullyConnectedLayer layer3(8, 13, 13, 10);
-	SoftmaxLayer layer4(10);
+	ReluLayer layer2(8, 26, 26);
+	MaxPoolLayer layer3(8, 26, 26, 2);
+	FullyConnectedLayer layer4(8, 13, 13, 10);
+	SoftmaxLayer layer5(10);
 
 	Tensor<float> input(1, 28, 28);
 	Tensor<float> expected(10, 1, 1);
 
-	Tensor<float> output(10, 1, 1);
 	Tensor<float> dL_dy(10, 1, 1);
 
 	std::cout << "Training Started..." << std::endl;
 
 	// TRAINING
 	{
-		int batchSize = 1000;
-		int startIndex = rand() % (number_of_images - batchSize);
-		int totalIterations = 0;
-
 		mnist_images = read_mnist_images("assets/train-images.idx3-ubyte", number_of_images, image_size);
 		mnist_labels = read_mnist_labels("assets/train-labels.idx1-ubyte", number_of_labels);
 
-		for (int e = 0; e < 100; e++)
+		int totalIterations = 0;
+
+		for (int e = 0; e < 50; e++)
 		{
 			float totalLoss = 0.0f;
 			int totalCorrect = 0.0f;
 
-			for (int k = 0; k < batchSize; k++)
+			for (int k = 0; k < number_of_images; k++)
 			{
-				int index = (rand() % batchSize) + startIndex;
+				int index = k;
 
 				// INPUT IMAGE
 				for (int i = 0; i < 28; i++)
@@ -134,7 +131,7 @@ int main()
 				expected((int)mnist_labels[index], 0, 0) = 1.0f;
 
 				// FEED FORWARD
-				output = layer4.forwardPropagate(layer3.forwardPropagate(layer2.forwardPropagate(layer1.forwardPropagate(input))));
+				const Tensor<float>& output = layer5.forwardPropagate(layer4.forwardPropagate(layer3.forwardPropagate(layer2.forwardPropagate(layer1.forwardPropagate(input)))));
 
 				// PREDICTION
 				int prediction = 0;
@@ -150,24 +147,28 @@ int main()
 				// LOSS
 				float loss = 0.0f;
 				for (int i = 0; i < output.sX; i++)
-					loss += expected(i, 0, 0) * -log(output(i, 0, 0) + 0.0001f);
+					loss -= expected(i, 0, 0) * log(std::max(0.00001f, output(i, 0, 0)));
+
+				if (k % 10000 == 0) std::cout << "Loss: " << std::setprecision(5) << loss << std::endl;
 
 				// INITIAL GRADIENT
 				for (int i = 0; i < dL_dy.sX; i++)
-					dL_dy(i, 0, 0) = -expected(i, 0, 0) / (output(i, 0, 0) + 0.0001f);
+					dL_dy(i, 0, 0) = -expected(i, 0, 0) / (output(i, 0, 0) + 0.001f);
+
+				float lr = 0.001f / (1.0f + (float)e / 5.0f);
 
 				// BACKPROPAGATION
-				layer1.backwardPropagate(layer2.backwardPropagate(layer3.backwardPropagate(layer4.backwardPropagate(dL_dy), 0.001f)), 0.001f);
+				layer1.backwardPropagate(layer2.backwardPropagate(layer3.backwardPropagate(layer4.backwardPropagate(layer5.backwardPropagate(dL_dy), lr))), lr);
 
 
 				totalLoss += loss;
 				totalCorrect += correct ? 1 : 0;
 			}
 
-			totalIterations += batchSize;
+			totalIterations += number_of_images;
 
-			float avgLoss = totalLoss / (float)batchSize;
-			float avgCorrect = (float)totalCorrect / (float)batchSize;
+			float avgLoss = totalLoss / (float)number_of_images;
+			float avgCorrect = (float)totalCorrect / (float)number_of_images;
 
 			std::cout
 				<< "[Epoch: " << (e + 1) << ", It: " << totalIterations << "]: "
@@ -213,7 +214,7 @@ int main()
 				expected(i, 0, 0) = 0.0f;
 			expected((int)mnist_labels[e], 0, 0) = 1.0f;
 
-			output = layer4.forwardPropagate(layer3.forwardPropagate(layer2.forwardPropagate(layer1.forwardPropagate(input))));
+			const Tensor<float>& output = layer5.forwardPropagate(layer4.forwardPropagate(layer3.forwardPropagate(layer2.forwardPropagate(layer1.forwardPropagate(input)))));
 
 			// PREDICTION
 			int prediction = 0;
@@ -229,7 +230,7 @@ int main()
 			// LOSS
 			float loss = 0.0f;
 			for (int i = 0; i < output.sX; i++)
-				loss += expected(i, 0, 0) * -log(output(i, 0, 0) + 0.0001f);
+				loss -= expected(i, 0, 0) * log(std::max(0.00001f, output(i, 0, 0)));
 
 			totalLoss += loss;
 			totalCorrect += correct ? 1 : 0;
