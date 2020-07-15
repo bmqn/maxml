@@ -1,6 +1,7 @@
 # Binaries
 bin/**
 obj/**
+vendor/opencv
 
 !vendor/bin/premake/**
 

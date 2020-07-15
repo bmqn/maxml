@@ -6,9 +6,7 @@
 
 ReluLayer::ReluLayer(int iN, int iWidth, int iHeight)
 	:
-	input(iN, iWidth, iHeight),
-	output(iN, iWidth, iHeight),
-	dinput(iN, iWidth, iHeight)
+	Layer(Tensor<float>(iN, iWidth, iHeight), Tensor<float>(iN, iWidth, iHeight), Tensor<float>(iN, iWidth, iHeight))
 {
 }
 
@@ -24,7 +22,7 @@ const Tensor<float>& ReluLayer::forwardPropagate(const Tensor<float>& input)
 	return output;
 }
 
-const Tensor<float>& ReluLayer::backwardPropagate(const Tensor<float>& dout)
+const Tensor<float>& ReluLayer::backwardPropagate(const Tensor<float>& dout, float learningRate)
 {
 	for (int n = 0; n < input.sX; n++)
 		for (int i = 0; i < input.sY; i++)

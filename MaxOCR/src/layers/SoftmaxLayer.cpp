@@ -1,10 +1,8 @@
 #include "SoftmaxLayer.h"
 
-SoftmaxLayer::SoftmaxLayer(int iSize)
+SoftmaxLayer::SoftmaxLayer(int size)
 	:
-	input(iSize, 1, 1),
-	output(iSize, 1, 1),
-	dinput(iSize, 1, 1)
+	Layer(Tensor<float>(size, 1, 1), Tensor<float>(size, 1, 1), Tensor<float>(size, 1, 1))
 {
 }
 
@@ -28,7 +26,7 @@ const Tensor<float>& SoftmaxLayer::forwardPropagate(const Tensor<float>& input)
 	return output;
 }
 
-const Tensor<float>& SoftmaxLayer::backwardPropagate(const Tensor<float>& dout)
+const Tensor<float>& SoftmaxLayer::backwardPropagate(const Tensor<float>& dout, float learningRate)
 {
 	memset(dinput.data.get(), 0.0f, dinput.sX * dinput.sY * dinput.sZ * sizeof(float));
 

@@ -2,10 +2,8 @@
 
 
 MaxPoolLayer::MaxPoolLayer(int iN, int iWidth, int iHeight, int fSize) :
-	filterSize(fSize),
-	input(iN, iWidth, iHeight),
-	output(iN, iWidth / fSize, iHeight / fSize),
-	dinput(iN, iWidth, iHeight)
+	Layer(Tensor<float>(iN, iWidth, iHeight), Tensor<float>(iN, iWidth / fSize, iHeight / fSize), Tensor<float>(iN, iWidth, iHeight)),
+	filterSize(fSize)
 {
 }
 
@@ -22,7 +20,7 @@ const Tensor<float>& MaxPoolLayer::forwardPropagate(const Tensor<float>& input)
 				for (int k = 0; k < filterSize; k++)
 					for (int l = 0; l < filterSize; l++)
 					{
-						float val = input(n, i * filterSize + l, j * filterSize + k);
+						float val = input(n, i * (int)filterSize + l, j * (int)filterSize + k);
 						if (val > maxVal)
 							maxVal = val;
 					}
@@ -33,7 +31,7 @@ const Tensor<float>& MaxPoolLayer::forwardPropagate(const Tensor<float>& input)
 	return this->output;
 }
 
-const Tensor<float>& MaxPoolLayer::backwardPropagate(const Tensor<float>& dout)
+const Tensor<float>& MaxPoolLayer::backwardPropagate(const Tensor<float>& dout, float learningRate)
 {
 	for (int n = 0; n < output.sX; n++)
 		for (int i = 0; i < output.sY; i++)

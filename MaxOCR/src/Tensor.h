@@ -1,97 +1,121 @@
 #pragma once
 
+#include <vector>
+#include <array>
+#include <memory>
+#include <string>
 #include <iostream>
 #include <iomanip>
+#include <sstream> 
 
-template<typename T>
+template<int... Args>
+constexpr int packProd()
+{
+	return ( Args * ... );
+}
+
+template<typename T, int ... Dims>
 struct Tensor
 {
-	std::shared_ptr<T[]> data;
-	int sX, sY, sZ;
+	int size;
+	std::array<int, sizeof...(Dims)> dimensions;
+	std::vector<T> data;
 
-	Tensor() = delete;
-
-	Tensor(int x, int y, int z) : sX(x), sY(y), sZ(z)
+	Tensor()
+		: size(packProd<Dims ...>()), dimensions({ Dims ... })
 	{
-		data = std::make_unique<T[]>(x * y * z);
+		data.resize(size);
 	}
 
-	Tensor(const Tensor<T>& other) : sX(other.sX), sY(other.sY), sZ(other.sZ)
+	int getIndex(std::array<int, sizeof...(Dims)> index) const
 	{
-		data = std::make_unique<T[]>(x * y * z);
-		memcpy(this->data.get(), other.data.get(), other.sX * other.sY * other.sZ * sizeof(T));
+		constexpr int Dim = sizeof...(Dims);
+
+		int pos = index[0];
+		for (int dim = 1; dim < Dim; dim++)
+			pos = pos * this->dimensions[dim] + index[dim];
+
+		return pos;
 	}
 
-	/*const Tensor<T>& operator= (const Tensor<T>& other)
+	template <typename ... Inds>
+	T& operator() (Inds... indices)
 	{
-		if (this == &other)
-			return *this;
+		constexpr int Dim = sizeof...(Inds);
+		static_assert(Dim == sizeof...(Dims));
 
-		if (sX * sY * sZ != other.sX * other.sY * other.sZ)
-		{
-			delete[] data;
-			data = new T[other.sX * other.sY * other.sZ];
-		}
-
-		sX = other.sX;
-		sY = other.sY;
-		sZ = other.sZ;
-
-		memcpy(this->data, other.data, other.sX * other.sY * other.sZ * sizeof(T));
-		
-		return *this;
-	}*/
-
-	T& operator()(int x, int y, int z)
-	{
-		return get(x, y, z);
+		return data[getIndex({ indices... })];
 	}
 
-	const T& operator()(int x, int y, int z) const
+	T& operator[] (int index)
 	{
-		return get(x, y, z);
+		return data[index];
 	}
 
-	T& get(int x, int y, int z)
+	const T operator[] (int index) const
 	{
-		return data[index(x, y, z)];
-	}
-
-	const T& get(int x, int y, int z) const
-	{
-		return data[index(x, y, z)];
-	}
-
-	int index(int x, int y, int z) const
-	{
-		return x * (sZ * sY) + y * (sZ)+ z;
+		return data[index];
 	}
 
 	friend std::ostream& operator<< (std::ostream& out, const Tensor& obj)
 	{
-		out << "[";
-		for (int x = 0; x < obj.sX; x++)
-		{
-			if (x > 0) out << std::setfill(' ') << std::setw(2);
-			out << "[";
-			for (int y = 0; y < obj.sY; y++)
-			{
-				if (y > 0) out << std::setfill(' ') << std::setw(3);
-				out << "[";
-				for (int z = 0; z < obj.sZ; z++)
-				{
-					out << std::fixed << std::setprecision(2) << obj.get(x, y, z);
-					if (z < obj.sZ - 1) out << ", " << std::setw(5);
-				}
-				out << "]";
-				if (y < obj.sY - 1) out << "," << std::endl;
-			}
-			out << "]";
-			if (x < obj.sX - 1) out << "," << std::endl << std::endl;
-		}
-		out << "]";
-
+		out << obj.toString();
 		return out;
+	}
+
+	std::string toString() const
+	{
+		constexpr int Dim = sizeof...(Dims);
+
+		std::ostringstream ss;
+		std::array<int, Dim> index { 0 };
+		bool exit = false;
+
+		do 
+		{
+			for (int j = Dim - 1; j >= 0; j--)
+			{
+				if (index[j] > 0)
+					break;
+				else if (index[j] == 0)
+					ss << "[";
+			}
+
+			ss << std::fixed << std::setprecision(2) << std::right << std::setw(5) << this->data[this->getIndex(index)];
+
+			index[Dim - 1] += 1;
+
+			for (int j = Dim - 1; j >= 0; j--)
+			{
+				if (index[j] < this->dimensions[j])
+					break;
+				else if (index[j] == this->dimensions[j])
+				{
+					// Then inc at j-1 and make all <= j = 0;
+					if (j > 0) index[j - 1] += 1;
+					else exit = true;
+
+					for (int k = j; k < Dim; k++)
+						index[k] = 0;
+				}
+			}
+
+			for (int j = Dim - 1; j >= 0; j--)
+			{
+				if (index[j] > 0)
+				{
+					if (j == Dim - 1) ss << ", ";
+					if (j < Dim - 1) ss << ", " << std::endl << std::string(j + 1, ' ');
+					break;
+				}
+				else if (index[j] == 0)
+					ss << "]";
+			}
+
+		} while (!exit);
+
+
+		return ss.str();
 	}
 };
 
