@@ -7,13 +7,19 @@ class ConvolutionLayer : public Layer
 
 public:
 	ConvolutionLayer() = delete;
-	ConvolutionLayer(int iN, int iWidth, int iHeight, int kSize, int kNum);
+	ConvolutionLayer(int kernelSize, int kernelNum);
 
-	virtual const Tensor<float>& forwardPropagate(const Tensor<float>& input) override;
-	virtual const Tensor<float>& backwardPropagate(const Tensor<float>& dout, float learningRate) override;
-
+	virtual void forwardPropagate(const Tensor<float>& input, Tensor<float>& output) override;
+	virtual void backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput) override;
+	virtual void updateParameters(float learningRate) override;
 
 private:
-	Tensor<float> kernel;
+	void oneChannelConvolution(const float* kernel, const float* src, int width, int height, float* dst);
+
+private:
+	Tensor<float>	kernel_;
+	Tensor<float>	dkernel_;
+	int				kernelSize_;
+	int				kernelNum_;
 };
 

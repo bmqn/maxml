@@ -1,21 +1,12 @@
 #pragma once
 
-#include "../Tensor.h"
+#include "../utils/Tensor.h"
 
 class Layer
 {
 public:
-	virtual const Tensor<float>& forwardPropagate(const Tensor<float>& input) = 0;
-	virtual const Tensor<float>& backwardPropagate(const Tensor<float>& dout, float learningRate) = 0;
-
-	Layer(Tensor<float> input, Tensor<float> output, Tensor<float> dinput)
-		: input(input), output(output), dinput(dinput)
-	{}
-
-public:
-	Tensor<float> input;
-	Tensor<float> output;
-
-	Tensor<float> dinput;
+	virtual void forwardPropagate(const Tensor<float>& input, Tensor<float>& output) = 0;
+	virtual void backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput) = 0;
+	virtual void updateParameters(float learningRate) = 0;
 };
 

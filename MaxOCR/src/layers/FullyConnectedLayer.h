@@ -1,20 +1,26 @@
 #pragma once
 
 #include "Layer.h"
-#include "Tensor.h"
 
 class FullyConnectedLayer : public Layer
 {
 
 public:
 	FullyConnectedLayer() = delete;
-	FullyConnectedLayer(int iSize, int oSize);
+	FullyConnectedLayer(int inputSize, int outputSize);
 
-	virtual const Tensor<float>& forwardPropagate(const Tensor<float>& input) override;
-	virtual const Tensor<float>& backwardPropagate(const Tensor<float>& dout, float learningRate) override;
-	
+	virtual void forwardPropagate(const Tensor<float>& input, Tensor<float>& output) override;
+	virtual void backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput) override;
+	virtual void updateParameters(float learningRate) override;
+
 private:
-	Tensor<float> weights;
-	Tensor<float> biases;
+	Tensor<float>	weights_;
+	Tensor<float>	biases_;
+
+	Tensor<float>	dweights_;
+	Tensor<float>	dbiases_;
+	int				inputSize_;
+	int				outputSize_;
+
 };
 

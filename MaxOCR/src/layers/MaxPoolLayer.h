@@ -6,12 +6,13 @@ class MaxPoolLayer : public Layer
 {
 public:
 	MaxPoolLayer() = delete;
-	MaxPoolLayer(int iN, int iWidth, int iHeight, int fSize);
+	MaxPoolLayer(int stride);
 
-	virtual const Tensor<float>& forwardPropagate(const Tensor<float>& input) override;
-	virtual const Tensor<float>& backwardPropagate(const Tensor<float>& dout, float learningRate) override;
+	virtual void forwardPropagate(const Tensor<float>& input, Tensor<float>& output) override;
+	virtual void backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput) override;
+	virtual void updateParameters(float learningRate) override;
 
 private:
-	float filterSize;
+	int stride_;
 };
 

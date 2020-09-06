@@ -2,57 +2,61 @@
 
 #include <random>
 
-#include "Common.h"
 
-
-FullyConnectedLayer::FullyConnectedLayer(int iSize, int oSize)
+FullyConnectedLayer::FullyConnectedLayer(int inputSize, int outputSize)
 	:
-	Layer(Tensor<float>(iSize, 1, 1), Tensor<float>(oSize, 1, 1), Tensor<float>(iSize, 1, 1)),
-	weights(iSize, oSize, 1),
-	biases(oSize, 1, 1)
+	weights_(1, outputSize, inputSize),
+	biases_(1, 1, outputSize),
+	dweights_(1, outputSize, inputSize),
+	dbiases_(1, 1, outputSize),
+	inputSize_(inputSize),
+	outputSize_(outputSize)
 {
-	for (int i = 0; i < iSize; i++)
-		for (int j = 0; j < oSize; j++)
-			weights(i, j, 0) = 2.19722f / iSize * rand() / float(RAND_MAX);
+	// TODO: Move into seperate header.
+	std::default_random_engine generator;
+	std::normal_distribution<double> distribution(0, 1);
 
-	for (int i = 0; i < oSize; i++)
-		biases(i, 0, 0) = 0.0f;
+	for (int i = 0; i < outputSize; i++)
+		for (int j = 0; j < inputSize; j++)
+			weights_(0, i, j) = distribution(generator);
+
+	for (int i = 0; i < outputSize; i++)
+		biases_(0, 0, i) = 0.0f;
 }
 
-const Tensor<float>& FullyConnectedLayer::forwardPropagate(const Tensor<float>& input)
+void FullyConnectedLayer::forwardPropagate(const Tensor<float>& input, Tensor<float>& output)
 {
-	this->input = input;
-
-	for (int j = 0; j < output.sX; j++)
-	{
-		float sum = 0;
-
-		for (int i = 0; i < input.sX; i++)
-			sum += input(i, 0, 0) * weights(i, j, 0);
-
-		sum += biases(j, 0, 0);
-
-		output(j, 0, 0) = sum;
-	}
-
-	return output;
-}
-
-const Tensor<float>& FullyConnectedLayer::backwardPropagate(const Tensor<float>& dout, float learningRate)
-{
-	memset(dinput.data.get(), 0.0f, dinput.sX * dinput.sY * dinput.sZ * sizeof(float));
-
-	for (int j = 0; j < output.sX; j++)
-	{	
-		for (int i = 0; i < input.sX; i++)
+	for (int j = 0; j < outputSize_; j++)
 		{
-			weights(i, j, 0) -= learningRate * dout(j, 0, 0) * input(i, 0, 0);
+			float val = 0.0f;
 
-			dinput(i, 0, 0) += dout(j, 0, 0) * weights(i, j, 0);
+			for (int i = 0; i < inputSize_; i++)
+			{
+				// std::cout << input[i] << ", " << (&weights_(0, j, 0))[i] << std::endl;
+				val += input[i] * (&weights_(0, j, 0))[i];
+
+			}
+
+			output(j, 0, 0) = val + biases_(0, 0, j);
+		}
+}
+
+void FullyConnectedLayer::backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput)
+{
+	/*for (int j = 0; j < output.c_; j++)
+	{	
+		for (int i = 0; i < input.c_; i++)
+		{
+			dweights(i, j, 0) = doutput(j, 0, 0) * input(i, 0, 0);
+
+			dinput(i, 0, 0) += doutput(j, 0, 0) * weights(i, j, 0);
 		}
 
-		biases(j, 0, 0) -= learningRate * dout(j, 0, 0);
-	}
+		dbiases(j, 0, 0) = doutput(j, 0, 0);
+	}*/
+}
 
-	return dinput;
+void FullyConnectedLayer::updateParameters(float learningRate)
+{
+
 }
