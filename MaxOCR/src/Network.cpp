@@ -11,24 +11,21 @@ void Network::addInputLayer(int channels, int width, int height)
 {
 	assert(layers_.empty());
 
-	data_.push_back(Tensor<float>(channels, width, height));
-	gradient_.push_back(Tensor<float>(channels, width, height));
+	inputSize_ = channels * width * height;
 
-	int outputChannels	= channels;
-	int outputWidth		= width;
-	int outputHeight	= height;
+	// Create the input Tensor.
+	Tensor<float> input(channels, width, height);
+	data_.push_back(std::move(input));
 
-	layers_.push_back(std::make_shared<InputLayer>());
-
-	data_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-	gradient_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
+	Tensor<float> gradient(channels, width, height);
+	gradient_.push_back(std::move(gradient));
 }
 
 void Network::addConvLayer(int kernelSize, int kernelNum)
 {
 	assert(!data_.empty());
 
-	Tensor<float>& input = *getInputData(layers_.size());
+	Tensor<float>& input = data_[layers_.size()];
 
 	int outputChannels	= kernelNum;
 	int outputWidth		= input.w_ - kernelSize + 1;
@@ -44,7 +41,7 @@ void Network::addMaxPoolLayer(int stride)
 {
 	assert(!data_.empty());
 
-	Tensor<float>& input = *getInputData(layers_.size());
+	Tensor<float>& input = data_[layers_.size()];
 
 	int outputChannels	= input.c_;
 	int outputWidth		= input.w_ / (float) stride;
@@ -60,7 +57,7 @@ void Network::addReluLayer()
 {
 	assert(!data_.empty());
 
-	Tensor<float>& input = *getInputData(layers_.size());
+	Tensor<float>& input = data_[layers_.size()];
 
 	int outputChannels	= input.c_;
 	int outputWidth		= input.w_;
@@ -76,7 +73,7 @@ void Network::addFullyConnectedLayer(int outputSize)
 {
 	assert(!data_.empty());
 
-	Tensor<float>& input = *getInputData(layers_.size());
+	Tensor<float>& input = data_[layers_.size()];
 
 	int inputSize = input.c_ * input.w_ * input.h_;
 
@@ -90,7 +87,7 @@ void Network::addSoftmaxLayer()
 {
 	assert(!data_.empty());
 
-	Tensor<float>& input = *getInputData(layers_.size() - 1);
+	Tensor<float>& input = data_[layers_.size()];
 
 	int outputChannels	= input.c_;
 	int outputWidth		= input.w_;
@@ -103,30 +100,59 @@ void Network::addSoftmaxLayer()
 
 }
 
+void Network::formNetwork()
+{
+	outputSize_ = data_[layers_.size()].size_;
+
+	expected_ = std::make_shared<Tensor<float>>(outputSize_, 1, 1);
+}
+
+void Network::train()
+{
+	assert(inputCallback_ && expecCallback_);
+
+	inputCallback_(data_[0]);
+
+	forwardPropagate();
+	backwardPropagate();
+	updateParameters();
+}
+
+Tensor<float> Network::predict(const Tensor<float>& input)
+{
+	memcpy(data_[0].data_, input.data_, inputSize_ * sizeof(float));
+
+	forwardPropagate();
+
+	Tensor<float> output(outputSize_, 1, 1);
+	memcpy(output.data_, data_[layers_.size()].data_, outputSize_ * sizeof(float));
+
+	return output;
+}
+
 void Network::forwardPropagate()
 {
-	assert(dataCallback_, "You must set the data callback!");
-
-	// Set input.
-	input_ = &data_[0];
-
-	std::pair<Tensor<float>*, Tensor<float>*> pair = { input_, &expected_ };
-
-	// Fetch Data
-	dataCallback_(pair);
-
 	for (int i = 0; i < layers_.size(); i++)
 	{
-		layers_[i]->forwardPropagate(*getInputData(i), *getOutputData(i));
+		layers_[i]->forwardPropagate(data_[i], data_[i + 1]);
+
+		// std::cout << "Input: " << std::endl << data_[i];
+		// std::cout << "Output: " << std::endl << data_[i + 1];
 	}
 }
 
 void Network::backwardPropagate()
 {
+	// Reset Gradients!
+	for (int i = 0; i < gradient_.size(); i++)
+		gradient_[i].setTo(0.0f);
+
+	expecCallback_(*expected_.get());
+
 	// LOSS
-	Tensor<float>& input = *getInputData(0);
-	Tensor<float>& output = *getOutputData(layers_.size() - 1);
-	Tensor<float>& doutput = *getOutputGradient(layers_.size() - 1);
+	Tensor<float>& input = data_[0];
+	Tensor<float>& output = data_[layers_.size()];
+	Tensor<float>& doutput = gradient_[layers_.size()];
 
 	int outputChannels	= output.c_;
 	int outputWidth		= output.w_;
@@ -138,24 +164,26 @@ void Network::backwardPropagate()
 		loss -= expected[i] * log(std::max(0.00001f, output(i, 0, 0)));*/
 
 	for (int i = 0; i < output.c_; i++)
-		loss += (output[i] - expected_.operator[](i)) * (output[i] - expected_.operator[](i));
+		loss += (output[i] - expected_->operator[](i)) * (output[i] - expected_->operator[](i));
 
-	std::cout << "--------------------------------------------------" << std::endl;
-	std::cout << "Input: " << std::endl <<input << std::endl;
-	std::cout << "Expected: " << std::endl << expected_.str() << std::endl;
-	std::cout << "Output: " << std::endl << output << std::endl;
+	/*std::cout << "--------------------------------------------------" << std::endl;
+	std::cout << "Input: " << std::endl << input << std::endl;
+	std::cout << "Expected: " << std::endl << expected_->str() << std::endl;
+	std::cout << "Output: " << std::endl << output << std::endl;*/
 	std::cout << "Loss: " << loss << std::endl;
-	std::cout << "--------------------------------------------------" << std::endl;
+	//std::cout << "--------------------------------------------------" << std::endl;
 
 	/*for (int i = 0; i < doutput.c_; i++)
 		doutput(i, 0, 0) = -expected[i] / (output(i, 0, 0) + 0.001f);*/
 
 	for (int i = 0; i < doutput.c_; i++)
-		doutput(i, 0, 0) = 2 * (output[i] - expected_.operator[](i));
+		doutput(i, 0, 0) = 2 * (output[i] - expected_->operator[](i));
 
 	for (int i = layers_.size() - 1; i >= 0; i--)
 	{
-		layers_[i]->backwardPropagate(*getInputData(i), *getInputGradient(i), *getOutputData(i), *getOutputGradient(i));
+		// std::cout << "Output: " << std::endl << data_[i + 1];
+
+		layers_[i]->backwardPropagate(data_[i], gradient_[i], data_[i + 1], gradient_[i + 1]);
 	}
 }
 
@@ -169,59 +197,59 @@ void Network::updateParameters()
 	}
 }
 
-const Tensor<float>* Network::getInputData(int layer) const
-{
-	assert(layer >= 0 && layer < data_.size());
-
-	return &data_[layer];
-}
-
-const Tensor<float>* Network::getOutputData(int layer) const
-{
-	assert(layer >= 0 && layer + 1 < data_.size());
-
-	return &data_[layer + 1];
-}
-
-Tensor<float>* Network::getInputData(int layer)
-{
-	assert(layer >= 0 && layer < data_.size());
-
-	return &data_[layer];
-}
-
-Tensor<float>* Network::getOutputData(int layer)
-{
-	assert(layer >= 0 && layer + 1 < data_.size());
-
-	return &data_[layer + 1];
-}
-
-const Tensor<float>* Network::getInputGradient(int layer) const
-{
-	assert(layer >= 0 && layer < data_.size());
-
-	return &gradient_[layer];
-}
-
-const Tensor<float>* Network::getOutputGradient(int layer) const
-{
-	assert(layer >= 0 && layer + 1 < data_.size());
-
-	return &gradient_[layer + 1];
-}
-
-Tensor<float>* Network::getInputGradient(int layer)
-{
-	assert(layer >= 0 && layer < data_.size() + 1);
-
-	return &gradient_[layer];
-}
-
-Tensor<float>* Network::getOutputGradient(int layer)
-{
-	assert(layer >= 0 && layer + 1 < data_.size());
-
-	return &gradient_[layer + 1];
-}
+//const Tensor<float>* Network::getInputData(int layer) const
+//{
+//	assert(layer >= 0 && layer < data_.size());
+//
+//	return &data_[layer];
+//}
+//
+//const Tensor<float>* Network::getOutputData(int layer) const
+//{
+//	assert(layer >= 0 && layer + 1 < data_.size());
+//
+//	return &data_[layer + 1];
+//}
+//
+//Tensor<float>* Network::getInputData(int layer)
+//{
+//	assert(layer >= 0 && layer < data_.size());
+//
+//	return &data_[layer];
+//}
+//
+//Tensor<float>* Network::getOutputData(int layer)
+//{
+//	assert(layer >= 0 && layer + 1 < data_.size());
+//
+//	return &data_[layer + 1];
+//}
+//
+//const Tensor<float>* Network::getInputGradient(int layer) const
+//{
+//	assert(layer >= 0 && layer < data_.size());
+//
+//	return &gradient_[layer];
+//}
+//
+//const Tensor<float>* Network::getOutputGradient(int layer) const
+//{
+//	assert(layer >= 0 && layer + 1 < data_.size());
+//
+//	return &gradient_[layer + 1];
+//}
+//
+//Tensor<float>* Network::getInputGradient(int layer)
+//{
+//	assert(layer >= 0 && layer < data_.size() + 1);
+//
+//	return &gradient_[layer];
+//}
+//
+//Tensor<float>* Network::getOutputGradient(int layer)
+//{
+//	assert(layer >= 0 && layer + 1 < data_.size());
+//
+//	return &gradient_[layer + 1];
+//}
 

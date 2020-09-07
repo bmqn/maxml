@@ -12,7 +12,7 @@
 template<typename T>
 struct Tensor
 {
-	int n_; // Batches
+	// int n_; // Batches
 	int c_; // Channels
 	int w_; // Width
 	int h_; // Height
@@ -46,7 +46,26 @@ struct Tensor
 		if (data_) delete[] data_;
 	}
 
-	Tensor<T>& operator=(const Tensor<T>& tensor) = delete;
+	Tensor<T>& operator=(const Tensor<T>& tensor)
+	{
+		if (this == &tensor)
+			return *this;
+
+		if (size_ != size_ && data_)
+		{
+			delete[] data_;
+			data_ = new T[tensor.size_];
+		}
+
+		c_ = tensor.c_;
+		w_ = tensor.w_;
+		h_ = tensor.h_;
+		size_ = tensor.size_;
+
+		memcpy(data_, tensor.data_, tensor.size_ * sizeof(T));
+
+		return *this;
+	}
 
 	Tensor<T>& operator=(Tensor<T>&& tensor)
 	{

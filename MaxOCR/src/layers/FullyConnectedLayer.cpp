@@ -14,7 +14,9 @@ FullyConnectedLayer::FullyConnectedLayer(int inputSize, int outputSize)
 {
 	// TODO: Move into seperate header.
 	std::default_random_engine generator;
-	std::normal_distribution<double> distribution(0, 1);
+	std::normal_distribution<float> distribution(0, 1.0f / std::sqrt(inputSize));
+
+	generator.seed(time(NULL));
 
 	for (int i = 0; i < outputSize; i++)
 		for (int j = 0; j < inputSize; j++)
@@ -26,8 +28,7 @@ FullyConnectedLayer::FullyConnectedLayer(int inputSize, int outputSize)
 
 void FullyConnectedLayer::forwardPropagate(const Tensor<float>& input, Tensor<float>& output)
 {
-	/*std::cout << "weights" << std::endl << weights_ << std::endl;
-	std::cout << "biases" << std::endl << biases_ << std::endl;*/
+	// std::cout << "--------------------------------------------------" << std::endl;
 
 	for (int j = 0; j < outputSize_; j++)
 		{
@@ -35,15 +36,15 @@ void FullyConnectedLayer::forwardPropagate(const Tensor<float>& input, Tensor<fl
 
 			for (int i = 0; i < inputSize_; i++)
 			{
-				// std::cout << input[i] << ", " << (&weights_(0, j, 0))[i] << std::endl;
 				val += input[i] * (&weights_(0, j, 0))[i];
+				// std::cout << input[i] << ", " << (&weights_(0, j, 0))[i] << std::endl;
 			}
 
 			output(j, 0, 0) = val + biases_(0, 0, j);
 		}
 
-	/*std::cout << "--------------------------------------------------" << std::endl;
-	std::cout << "weights: " << std::endl << weights_ << std::endl;
+	
+	/*std::cout << "weights: " << std::endl << weights_ << std::endl;
 	std::cout << "biases: " << std::endl << biases_ << std::endl;
 	std::cout << "input: " << std::endl << input << std::endl;
 	std::cout << "output: " << std::endl << output << std::endl;
@@ -98,7 +99,7 @@ void FullyConnectedLayer::updateParameters(float learningRate)
 	std::cout << "dbiases" << std::endl << dbiases_ << std::endl;
 	std::cout << "biases" << std::endl << biases_ << std::endl;*/
 
-	for (int s = 0; s < dbiases_.size_; s++)
+	for (int s = 0; s < dweights_.size_; s++)
 		weights_[s] -= learningRate * dweights_[s];
 
 	for (int s = 0; s < dbiases_.size_; s++)

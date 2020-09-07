@@ -34,7 +34,6 @@ class Network
 {
 public:
 	void addInputLayer(int channels, int width, int height);
-	void addOutputLayer(int outputs);
 
 	void addConvLayer(int kernelSize, int kernelNum);
 	void addMaxPoolLayer(int stride);
@@ -42,37 +41,34 @@ public:
 	void addFullyConnectedLayer(int outputSize);
 	void addSoftmaxLayer();
 
+	void formNetwork();
+
+	void setDataCallbacks(std::function<void(Tensor<float>&)> inputCallback, std::function<void(Tensor<float>&)> expecCallback)
+	{
+		this->inputCallback_ = inputCallback;
+		this->expecCallback_ = expecCallback;
+	}
+
+	void train();
+	Tensor<float> predict(const Tensor<float>& input);
+
+private:
 	void forwardPropagate();
 	void backwardPropagate();
 	void updateParameters();
 
-	void setCallback(std::function<void(const std::pair<Tensor<float>*, Tensor<float>*>)> dataCallback)
-	{
-		dataCallback_ = dataCallback;
-	}
 
 private:
-	const Tensor<float>* getInputData(int layer) const;
-	const Tensor<float>* getOutputData(int layer) const;
+	int inputSize_;
+	int outputSize_;
 
-	Tensor<float>* getInputData(int layer);
-	Tensor<float>* getOutputData(int layer);
-
-	const Tensor<float>* getInputGradient(int layer) const;
-	const Tensor<float>* getOutputGradient(int layer) const;
-
-	Tensor<float>* getInputGradient(int layer);
-	Tensor<float>* getOutputGradient(int layer);
-
-private:
 	std::vector<std::shared_ptr<Layer>> layers_;
 
-	Tensor<float>* input_;
-	Tensor<float> expected_ = Tensor<float>(1, 1, 1);
-
-	std::vector<Tensor<float>> data_;
+	std::shared_ptr<Tensor<float>> expected_;
+	std::vector<Tensor<float>> data_; // Stores the input and output of each layer.
 	std::vector<Tensor<float>> gradient_;
 
-	std::function<void(const std::pair<Tensor<float>*, Tensor<float>*>)> dataCallback_;
+	std::function<void(Tensor<float>&)> inputCallback_;
+	std::function<void(Tensor<float>&)> expecCallback_;
 };
 
