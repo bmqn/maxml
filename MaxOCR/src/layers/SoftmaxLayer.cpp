@@ -20,17 +20,12 @@ void SoftmaxLayer::backwardPropagate(const Tensor<float>& input, Tensor<float>& 
 {
 	dinput.setTo(0.0f);
 
-	/*for (int p = 0; p < input.sX; p++)
-		for (int i = 0; i < output.sX; i++)
+	for (int p = 0; p < input.c_; p++)
+		for (int i = 0; i < output.c_; i++)
 		{
 			if (p == i)
-				dinput(p, 0, 0) += dout(i, 0, 0) * output(p, 0, 0) * (1 - output(p, 0, 0));
+				dinput(p, 0, 0) += doutput(i, 0, 0) * output(p, 0, 0) * (1 - output(p, 0, 0));
 			else
-				dinput(p, 0, 0) += dout(i, 0, 0) * -output(i, 0, 0) * output(p, 0, 0);
-		}*/
-}
-
-void SoftmaxLayer::updateParameters(float learningRate)
-{
-
+				dinput(p, 0, 0) += doutput(i, 0, 0) * -output(i, 0, 0) * output(p, 0, 0);
+		}
 }

@@ -23,6 +23,30 @@ Tensor<float> createInput(int index, unsigned char** mnist)
 	return input;
 }
 
+static void dataCallback(const std::pair<Tensor<float>*, Tensor<float>*> callbackData)
+{
+	// y = 10x + 5
+
+	/*static std::vector<std::pair<std::vector<float>, float>> data
+	{
+	  {{2}, 25}, {{-14}, -135}, {{15}, 155}, {{6}, 65},   {{-18}, -175},
+	  {{-8}, -75}, {{9}, 95},     {{-4}, -35}, {{18}, 185}, {{-1}, -5},
+	};*/
+
+	static std::vector<std::pair<std::vector<float>, float>> data
+	{
+	  {{0, 0}, 0}, {{0, 1}, 1}, {{1, 0}, 1 }, {{1, 1}, 0}
+	};
+
+	static int index = 0;
+
+	auto pair = data[index++ % data.size()];
+
+	callbackData.first->operator[](0) = pair.first[0];
+	callbackData.first->operator[](1) = pair.first[1];
+	callbackData.second->operator[](0) = pair.second;
+}
+
 int main()
 {
 	std::default_random_engine generator;
@@ -45,41 +69,62 @@ int main()
 	Tensor<float> t1 = createInput(0, mnist_images);
 	Tensor<float> t2 = createInput(100, mnist_images);
 
+	Tensor<float> e1(10, 1, 1);
+	e1[5] = 1;
+
 	/*for (int c = 0; c < t1.c_; c++)
 		for (int w = 0; w < t1.w_; w++)
 			for (int h = 0; h < t1.h_; h++)
 				t1(c, w, h) = distribution(generator);*/
 
-	/*for (int c = 0; c < t2.c_; c++)
-		for (int w = 0; w < t2.w_; w++)
-			for (int h = 0; h < t2.h_; h++)
-				t2(c, w, h) = distribution(generator);*/
+				/*for (int c = 0; c < t2.c_; c++)
+					for (int w = 0; w < t2.w_; w++)
+						for (int h = 0; h < t2.h_; h++)
+							t2(c, w, h) = distribution(generator);*/
 
 	Network network;
 
-	network.setInputLayer(1, 28, 28);
+	//network.setInputLayer(1, 28, 28);
 
-	network.addConvLayer(5, 8);				// 1x28x28 -> 8x24x24
+	//network.addConvLayer(5, 8);				// 1x28x28 -> 8x24x24
+	//network.addReluLayer();
+	//network.addMaxPoolLayer(2);				// 8x24x24 -> 8x12x12
+
+	//network.addConvLayer(3, 16);			// 8x12x12 -> 16x10x10
+	//network.addReluLayer();
+	//network.addMaxPoolLayer(2);				// 16x10x10 -> 16x5x5
+
+	//network.addFullyConnectedLayer(100);	// 16x5x5 -> 100x1x1
+	//network.addReluLayer();
+
+	//network.addFullyConnectedLayer(10);		// 100x1x1 -> 10x1x1
+	//network.addReluLayer();
+
+	//network.addSoftmaxLayer();
+
+	//network.forwardPropagate(t1);
+	//// std::cout << network.getPredictions();
+
+	//network.backwardPropagate(e1);
+
+
+	network.addInputLayer(2, 1, 1);
+	network.addFullyConnectedLayer(50);
 	network.addReluLayer();
-	network.addMaxPoolLayer(2);				// 8x24x24 -> 8x12x12
+	network.addFullyConnectedLayer(1);
 
-	network.addConvLayer(3, 16);			// 8x12x12 -> 16x10x10
-	network.addReluLayer();
-	network.addMaxPoolLayer(2);				// 16x10x10 -> 16x5x5
+	network.setCallback(dataCallback);
 
-	network.addFullyConnectedLayer(100);	// 16x5x5 -> 100x1x1
-	network.addReluLayer();
+	for (int i = 0; i < 100000; i++)
+	{
+		network.forwardPropagate();
+		network.backwardPropagate();
 
-	network.addFullyConnectedLayer(10);		// 100x1x1 -> 10x1x1
-	network.addReluLayer();
+		network.updateParameters();
+	}
 
-	network.addSoftmaxLayer();
-
-	network.forwardPropagate(t1);
-	std::cout << network.getPredictions();
-
-	network.forwardPropagate(t2);
-	std::cout << network.getPredictions();
+	/*network.forwardPropagate(t2);
+	std::cout << network.getPredictions();*/
 
 	for (int i = 0; i < number_of_images; i++)
 		delete[] mnist_images[i];
@@ -198,6 +243,6 @@ int main()
 
 	//delete[] mnist_images;
 	//delete[] mnist_labels;
-	
+
 	return 0;
 }

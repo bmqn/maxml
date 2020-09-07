@@ -32,7 +32,48 @@ void ConvolutionLayer::forwardPropagate(const Tensor<float>& input, Tensor<float
 
 void ConvolutionLayer::backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput)
 {
+	//for (int f = 0; f < dout.sX; f++)
+	//	for (int i = 0; i < kernel.sY; i++)
+	//		for (int j = 0; j < kernel.sZ; j++)
+	//		{
+	//			float grad = 0.0f;
 
+	//			for (int k = 0; k < dout.sY; k++)
+	//				for (int l = 0; l < dout.sZ; l++)
+	//					for (int n = 0; n < input.sX; n++)
+	//						grad += input(n, i + k, j + l) * dout(f, k, l);
+
+	//			// kernel(f, i, j) -= learningRate * grad;
+	//		}
+
+	//const int dx = kernel.sY / 2;
+	//const int dy = kernel.sZ / 2;
+
+	//Tensor<float> rotated_kernel(kernel.sX, kernel.sY, kernel.sZ);
+
+	//for (int f = 0; f < kernel.sX; f++)
+	//	for (int i = kernel.sY - 1; i >= 0; i--)
+	//		for (int j = kernel.sZ - 1; j >= 0; j--)
+	//		{
+	//			float val = kernel(f, i, j);
+	//			rotated_kernel(f, kernel.sY - i - 1, kernel.sZ - j - 1) = val;
+	//		}
+
+	//for (int f = 0; f < kernel.sX; f++)
+	//	for (int i = 0; i < dinput.sY; i++)
+	//		for (int j = 0; j < dinput.sZ; j++)
+	//		{
+	//			float grad = 0.0f;
+
+	//			for (int k = 0; k < kernel.sY; k++)
+	//				for (int l = 0; l < kernel.sZ; l++)
+	//					for (int n = 0; n < dout.sX; n++)
+	//						grad += dout(n, i + k - dx, j + l - dy) * rotated_kernel(f, k, l);
+
+	//			dinput(f, i, j) = grad;
+	//		}
+
+	// std::cout << dinput;
 }
 
 
@@ -59,51 +100,3 @@ void ConvolutionLayer::oneChannelConvolution(const float* kernel, const float* s
 			dst[w * outputHeight + h] += val;
 		}
 }
-
-//const Tensor<float>& ConvolutionLayer::backwardPropagate(const Tensor<float>& dout, float learningRate)
-//{
-//	/*for (int f = 0; f < dout.sX; f++)
-//		for (int i = 0; i < kernel.sY; i++)
-//			for (int j = 0; j < kernel.sZ; j++)
-//			{
-//				float grad = 0.0f;
-//
-//				for (int k = 0; k < dout.sY; k++)
-//					for (int l = 0; l < dout.sZ; l++)
-//						for (int n = 0; n < input.sX; n++)
-//							grad += input(n, i + k, j + l) * dout(f, k, l);
-//
-//				kernel(f, i, j) -= learningRate * grad;
-//			}*/
-//
-//	//const int dx = kernel.sY / 2;
-//	//const int dy = kernel.sZ / 2;
-//
-//	//Tensor<float> rotated_kernel(kernel.sX, kernel.sY, kernel.sZ);
-//
-//	//for (int f = 0; f < kernel.sX; f++)
-//	//	for (int i = kernel.sY - 1; i >= 0; i--)
-//	//		for (int j = kernel.sZ - 1; j >= 0; j--)
-//	//		{
-//	//			float val = kernel(f, i, j);
-//	//			rotated_kernel(f, kernel.sY - i - 1, kernel.sZ - j - 1) = val;
-//	//		}
-//
-//	//for (int f = 0; f < kernel.sX; f++)
-//	//	for (int i = 0; i < dinput.sY; i++)
-//	//		for (int j = 0; j < dinput.sZ; j++)
-//	//		{
-//	//			float grad = 0.0f;
-//
-//	//			for (int k = 0; k < kernel.sY; k++)
-//	//				for (int l = 0; l < kernel.sZ; l++)
-//	//					for (int n = 0; n < dout.sX; n++)
-//	//						grad += dout(n, i + k - dx, j + l - dy) * rotated_kernel(f, k, l);
-//
-//	//			dinput(f, i, j) = grad;
-//	//		}
-//
-//	// std::cout << dinput;
-//
-//	return dinput;
-//}

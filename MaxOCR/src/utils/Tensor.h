@@ -12,6 +12,7 @@
 template<typename T>
 struct Tensor
 {
+	int n_; // Batches
 	int c_; // Channels
 	int w_; // Width
 	int h_; // Height
