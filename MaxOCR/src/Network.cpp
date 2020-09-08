@@ -7,105 +7,12 @@
 #include "layers/FullyConnectedLayer.h"
 #include "layers/SoftmaxLayer.h"
 
-void Network::addInputLayer(int channels, int width, int height)
+// Requires complete defn...
+Network::Builder Network::make(int channels, int width, int height, float learningRate)
 {
-	assert(layers_.empty());
-
-	inputSize_ = channels * width * height;
-
-	// Create the input Tensor.
-	Tensor<float> input(channels, width, height);
-	data_.push_back(std::move(input));
-
-	Tensor<float> gradient(channels, width, height);
-	gradient_.push_back(std::move(gradient));
+	return Network::Builder(channels, width, height, learningRate);
 }
 
-void Network::addConvLayer(int kernelSize, int kernelNum)
-{
-	assert(!data_.empty());
-
-	Tensor<float>& input = data_[layers_.size()];
-
-	int outputChannels	= kernelNum;
-	int outputWidth		= input.w_ - kernelSize + 1;
-	int outputHeight	= input.h_ - kernelSize + 1;
-	
-	layers_.push_back(std::make_shared<ConvolutionLayer>(kernelSize, kernelNum));
-
-	data_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-	gradient_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-}
-
-void Network::addMaxPoolLayer(int stride)
-{
-	assert(!data_.empty());
-
-	Tensor<float>& input = data_[layers_.size()];
-
-	int outputChannels	= input.c_;
-	int outputWidth		= input.w_ / (float) stride;
-	int outputHeight	= input.h_ / (float) stride;
-
-	layers_.push_back(std::make_shared<MaxPoolLayer>(stride));
-
-	data_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-	gradient_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-}
-
-void Network::addReluLayer()
-{
-	assert(!data_.empty());
-
-	Tensor<float>& input = data_[layers_.size()];
-
-	int outputChannels	= input.c_;
-	int outputWidth		= input.w_;
-	int outputHeight	= input.h_;
-
-	layers_.push_back(std::make_shared<ReluLayer>());
-
-	data_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-	gradient_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-}
-
-void Network::addFullyConnectedLayer(int outputSize)
-{
-	assert(!data_.empty());
-
-	Tensor<float>& input = data_[layers_.size()];
-
-	int inputSize = input.c_ * input.w_ * input.h_;
-
-	layers_.push_back(std::make_shared<FullyConnectedLayer>(inputSize, outputSize));
-
-	data_.push_back(Tensor<float>(outputSize, 1, 1));
-	gradient_.push_back(Tensor<float>(outputSize, 1, 1));
-}
-
-void Network::addSoftmaxLayer()
-{
-	assert(!data_.empty());
-
-	Tensor<float>& input = data_[layers_.size()];
-
-	int outputChannels	= input.c_;
-	int outputWidth		= input.w_;
-	int outputHeight	= input.h_;
-
-	layers_.push_back(std::make_shared<SoftmaxLayer>());
-
-	data_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-	gradient_.push_back(Tensor<float>(outputChannels, outputWidth, outputHeight));
-
-}
-
-void Network::formNetwork()
-{
-	outputSize_ = data_[layers_.size()].size_;
-
-	expected_ = std::make_shared<Tensor<float>>(outputSize_, 1, 1);
-}
 
 void Network::train()
 {
@@ -120,12 +27,12 @@ void Network::train()
 
 Tensor<float> Network::predict(const Tensor<float>& input)
 {
-	memcpy(data_[0].data_, input.data_, inputSize_ * sizeof(float));
+	memcpy(data_[0].data_, input.data_, 1 * sizeof(float));
 
 	forwardPropagate();
 
-	Tensor<float> output(outputSize_, 1, 1);
-	memcpy(output.data_, data_[layers_.size()].data_, outputSize_ * sizeof(float));
+	Tensor<float> output(1, 1, 1);
+	memcpy(output.data_, data_[layers_.size()].data_, 1 * sizeof(float));
 
 	return output;
 }
@@ -146,6 +53,8 @@ void Network::backwardPropagate()
 	// Reset Gradients!
 	for (int i = 0; i < gradient_.size(); i++)
 		gradient_[i].setTo(0.0f);
+
+	expected_ = std::make_shared<Tensor<float>>(1, 1, 1);
 
 	expecCallback_(*expected_.get());
 
@@ -252,4 +161,3 @@ void Network::updateParameters()
 //
 //	return &gradient_[layer + 1];
 //}
-

@@ -58,16 +58,15 @@ int main()
 		data.push_back({ x, x * x});
 	}
 
-	Network network;
-
-	network.addInputLayer(1, 1, 1);
-	network.addFullyConnectedLayer(10);
-	network.addReluLayer();
-	network.addFullyConnectedLayer(10);
-	network.addReluLayer();
-	network.addFullyConnectedLayer(1);
-
-	network.formNetwork();
+	Network network =
+		Network::make(1, 1, 1, 0.01f)
+		.addFullyConnectedLayer(10)
+		.addReluLayer()
+		.addFullyConnectedLayer(50)
+		.addReluLayer()
+		.addFullyConnectedLayer(1)
+		.addReluLayer()
+		.build();
 
 	network.setDataCallbacks(inputCallback, expecCallback);
 
