@@ -1,5 +1,4 @@
 #include "utils/MnistLoader.h"
-
 #include "utils/Tensor.h"
 
 #include "layers/ConvolutionLayer.h"
@@ -8,33 +7,21 @@
 #include "layers/SoftmaxLayer.h"
 #include "layers/ReluLayer.h"
 
-#include "Network.h"
+#include "model/Model.h"
 
 #include <random>
 
-Tensor<float> createInput(int index, unsigned char** mnist)
-{
-	Tensor<float> input(1, 28, 28);
-
-	for (int i = 0; i < 28; i++)
-		for (int j = 0; j < 28; j++)
-			input(0, i, j) = mnist[index][i * 28 + j] / 255.0f;
-
-	return input;
-}
-
-static std::vector<std::pair<float, float>> data;
-
+static std::vector<std::pair<double, double>> data;
 static int index = 0;
 
-static void inputCallback(Tensor<float>& input)
+static void inputCallback(Tensor<double>& input)
 {
 	auto pair = data[index % data.size()];
 
 	input[0] = pair.first;
 }
 
-static void expecCallback(Tensor<float>& expec)
+static void expecCallback(Tensor<double>& expec)
 {
 	auto pair = data[index % data.size()];
 
@@ -43,47 +30,42 @@ static void expecCallback(Tensor<float>& expec)
 
 int main()
 {
-	int number_of_images;
-	int number_of_labels;
-	int image_size;
-	unsigned char** mnist_images;
-	unsigned char* mnist_labels;
-
-	mnist_images = read_mnist_images("assets/train-images.idx3-ubyte", number_of_images, image_size);
-	mnist_labels = read_mnist_labels("assets/train-labels.idx1-ubyte", number_of_labels);
-
+	// y = x * x + 1
 	for (int i = 0; i < 1000; i++)
 	{
-		float x = 3 * (((float)i - 500.0f) / 500.0f);
-		data.push_back({ x, x * x});
+		double x = 5.0 * (((double)i - 500.0f) / 500.0f);
+		data.push_back({ x, x * x + 1.0f});
 	}
 
-	Network network =
-		Network::make(1, 1, 1, 0.01f)
-		.addFullyConnectedLayer(10)
+	auto network = Model<double>::make(1, 1, 1, 0.00001f)
+		.addFullyConnectedLayer(100)
 		.addReluLayer()
 		.addFullyConnectedLayer(50)
 		.addReluLayer()
 		.addFullyConnectedLayer(1)
-		.addReluLayer()
 		.build();
 
 	network.setDataCallbacks(inputCallback, expecCallback);
 
-	for (int i = 0; i < 10000; i++)
+	for (int i = 0; i < 50000; i++)
 	{
 		std::shuffle(data.begin(), data.end(), std::default_random_engine());
+		index++;
 
 		network.train();
-
-		index++;
 	}
 
-	for (int i = 0; i < number_of_images; i++)
-		delete[] mnist_images[i];
+	Tensor<double> inp(1, 1, 1);
+	Tensor<double> exp(1, 1, 1);
 
-	delete[] mnist_images;
-	delete[] mnist_labels;
+	for (float x = -5.0f; x <= 5.0f; x += 0.25f)
+	{
+		inp[0] = x;
+		exp[0] = x * x + 1;
+		// std::cout << "x = " << x << ", x * x = " << network.predict(inp, exp) << std::endl;
+
+		std::cout << std::setprecision(2) << "(" << x << ", " << std::setprecision(2) << network.predict(inp, exp) << "), ";
+	}
 
 	return 0;
 }

@@ -2,15 +2,16 @@
 
 #include "Layer.h"
 
-class MaxPoolLayer : public Layer
+template<typename T>
+class MaxPoolLayer : public Layer<T>
 {
 public:
 	MaxPoolLayer() = delete;
 	MaxPoolLayer(int stride);
 
-	virtual void forwardPropagate(const Tensor<float>& inputs, Tensor<float>& outputs) override;
-	virtual void backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput) override;
-	virtual void updateParameters(float learningRate) override {}
+	virtual void forwardPropagate(const Tensor<T>& input, Tensor<T>& output) override;
+	virtual void backwardPropagate(const Tensor<T>& input, Tensor<T>& dinput, const Tensor<T>& output, const Tensor<T>& doutput) override;
+	virtual void updateParameters(T learningRate) override {}
 
 private:
 	int stride_;

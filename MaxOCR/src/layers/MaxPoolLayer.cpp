@@ -1,23 +1,26 @@
 #include "MaxPoolLayer.h"
 
 
-MaxPoolLayer::MaxPoolLayer(int stride)
+
+template<typename T>
+MaxPoolLayer<T>::MaxPoolLayer(int stride)
 	: stride_(stride)
 {
 }
 
-void MaxPoolLayer::forwardPropagate(const Tensor<float>& input, Tensor<float>& output)
+template<typename T>
+void MaxPoolLayer<T>::forwardPropagate(const Tensor<T>& input, Tensor<T>& output)
 {
 	for (int c = 0; c < output.c_; c++)
 		for (int w = 0; w < output.w_; w++)
 			for (int h = 0; h < output.h_; h++)
 			{
-				float maxVal = input(c, w * stride_, h * stride_);
+				T maxVal = input(c, w * stride_, h * stride_);
 
 				for (int i = 0; i < stride_; i++)
 					for (int j = 0; j < stride_; j++)
 					{
-						float val = input(c, w * stride_ + i, h * stride_ + j);
+						T val = input(c, w * stride_ + i, h * stride_ + j);
 
 						if (val > maxVal)
 							maxVal = val;
@@ -27,19 +30,20 @@ void MaxPoolLayer::forwardPropagate(const Tensor<float>& input, Tensor<float>& o
 			}
 }
 
-void MaxPoolLayer::backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput)
+template<typename T>
+void MaxPoolLayer<T>::backwardPropagate(const Tensor<T>& input, Tensor<T>& dinput, const Tensor<T>& output, const Tensor<T>& doutput)
 {
 	for (int c = 0; c < output.c_; c++)
 		for (int w = 0; w < output.w_; w++)
 			for (int h = 0; h < output.h_; h++)
 			{
-				float maxVal = input(c, w * stride_, h * stride_);
+				T maxVal = input(c, w * stride_, h * stride_);
 				int maxI = 0, maxJ = 0;
 
 				for (int i = 0; i < stride_; i++)
 					for (int j = 0; j < stride_; j++)
 					{
-						float val = input(c, w * stride_ + i, h * stride_ + j);
+						T val = input(c, w * stride_ + i, h * stride_ + j);
 						if (val > maxVal)
 						{
 							maxVal = val;

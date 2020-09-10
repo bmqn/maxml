@@ -2,11 +2,12 @@
 
 #include "../utils/Tensor.h"
 
+template <typename T>
 class Layer
 {
 public:
-	virtual void forwardPropagate(const Tensor<float>& input, Tensor<float>& output) = 0;
-	virtual void backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput) = 0;
-	virtual void updateParameters(float learningRate) = 0;
+	virtual void forwardPropagate(const Tensor<T>& input, Tensor<T>& output) = 0;
+	virtual void backwardPropagate(const Tensor<T>& input, Tensor<T>& dinput, const Tensor<T>& output, const Tensor<T>& doutput) = 0;
+	virtual void updateParameters(T learningRate) = 0;
 };
 

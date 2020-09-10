@@ -1,9 +1,10 @@
 #include "SoftmaxLayer.h"
 
-void SoftmaxLayer::forwardPropagate(const Tensor<float>& input, Tensor<float>& output)
+template<typename T>
+void SoftmaxLayer<T>::forwardPropagate(const Tensor<T>& input, Tensor<T>& output)
 {
-	float max = input(0, 0, 0);
-	float denom = 0.0f;
+	T max = input(0, 0, 0);
+	T denom = 0.0f;
 
 	for (int i = 0; i < input.c_; i++)
 		if (input(i, 0, 0) > max)
@@ -16,7 +17,8 @@ void SoftmaxLayer::forwardPropagate(const Tensor<float>& input, Tensor<float>& o
 		output(i, 0, 0) = exp(input(i, 0, 0) - max) / denom;
 }
 
-void SoftmaxLayer::backwardPropagate(const Tensor<float>& input, Tensor<float>& dinput, const Tensor<float>& output, const Tensor<float>& doutput)
+template<typename T>
+void SoftmaxLayer<T>::backwardPropagate(const Tensor<T>& input, Tensor<T>& dinput, const Tensor<T>& output, const Tensor<T>& doutput)
 {
 	dinput.setTo(0.0f);
 

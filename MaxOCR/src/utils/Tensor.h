@@ -1,12 +1,13 @@
 #pragma once
 
-#include <vector>
-#include <array>
-#include <memory>
-#include <string>
 #include <iostream>
 #include <iomanip>
+#include <memory>
+
+#include <string>
 #include <sstream>
+#include <vector>
+
 #include <assert.h>
 
 template<typename T>
