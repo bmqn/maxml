@@ -20,6 +20,8 @@ struct Tensor
 	int size_;
 	T* data_;
 
+	Tensor() : c_(0), w_(0), h_(0), size_(0), data_(nullptr) {}
+
 	Tensor(int c, int w, int h)
 		: c_(c), w_(w), h_(h), size_(c * w * h), data_(nullptr)
 	{
@@ -47,7 +49,7 @@ struct Tensor
 		if (data_) delete[] data_;
 	}
 
-	Tensor<T>& operator=(const Tensor<T>& tensor)
+	/*Tensor<T>& operator=(const Tensor<T>& tensor)
 	{
 		if (this == &tensor)
 			return *this;
@@ -66,7 +68,7 @@ struct Tensor
 		memcpy(data_, tensor.data_, tensor.size_ * sizeof(T));
 
 		return *this;
-	}
+	}*/
 
 	Tensor<T>& operator=(Tensor<T>&& tensor)
 	{

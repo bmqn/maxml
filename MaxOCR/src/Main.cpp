@@ -11,33 +11,18 @@
 
 #include <random>
 
-static std::vector<std::pair<double, double>> data;
-static int index = 0;
-
-static void inputCallback(Tensor<double>& input)
-{
-	auto pair = data[index % data.size()];
-
-	input[0] = pair.first;
-}
-
-static void expecCallback(Tensor<double>& expec)
-{
-	auto pair = data[index % data.size()];
-
-	expec[0] = pair.second;
-}
-
 int main()
 {
-	// y = x * x + 1
-	for (int i = 0; i < 1000; i++)
+	std::vector<std::pair<double, double>> data;
+
+	for (double i = -1000.0; i < 1000.0; i++)
 	{
-		double x = 5.0 * (((double)i - 500.0f) / 500.0f);
-		data.push_back({ x, x * x + 1.0f});
+		double x = 3.14159 * (i / 1000.0);
+
+		data.push_back({ x, std::sin(x)});
 	}
 
-	auto network = Model<double>::make(1, 1, 1, 0.00001f)
+	auto network = Model<double>::make(1, 1, 1, 0.0001f)
 		.addFullyConnectedLayer(100)
 		.addReluLayer()
 		.addFullyConnectedLayer(50)
@@ -45,26 +30,36 @@ int main()
 		.addFullyConnectedLayer(1)
 		.build();
 
-	network.setDataCallbacks(inputCallback, expecCallback);
-
-	for (int i = 0; i < 50000; i++)
-	{
-		std::shuffle(data.begin(), data.end(), std::default_random_engine());
-		index++;
-
-		network.train();
-	}
-
 	Tensor<double> inp(1, 1, 1);
 	Tensor<double> exp(1, 1, 1);
+	int index = 0;
 
-	for (float x = -5.0f; x <= 5.0f; x += 0.25f)
+	for (int epoch = 0; epoch < 1000; epoch++)
 	{
-		inp[0] = x;
-		exp[0] = x * x + 1;
-		// std::cout << "x = " << x << ", x * x = " << network.predict(inp, exp) << std::endl;
+		std::cout << "Epoch " << epoch << " starting..." << std::endl;
 
-		std::cout << std::setprecision(2) << "(" << x << ", " << std::setprecision(2) << network.predict(inp, exp) << "), ";
+		std::shuffle(data.begin(), data.end(), std::default_random_engine());
+
+		for (; index < data.size(); index++)
+		{
+			inp[0] = data[index].first;
+			exp[0] = data[index].second;
+
+			network.train(&inp, &exp);
+		}
+
+		index = 0;
+	}
+
+	std::cout << "Testing starting..." << std::endl;
+	for (double x = -1.0; x <= 1.0; x += 0.05)
+	{
+		double theta = 3.14159 * x;
+
+		inp[0] = theta;
+		exp[0] = std::sin(theta);
+
+		std::cout << std::setprecision(2) << "(" << theta << ", " << network.predict(&inp, &exp) << "), ";
 	}
 
 	return 0;

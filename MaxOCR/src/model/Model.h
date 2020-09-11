@@ -19,38 +19,29 @@ public:
 	Model(std::vector<Tensor<T>>&& data, std::vector<Tensor<T>>&& gradient, std::vector<std::shared_ptr<Layer<T>>>&& layers,
 		int outputChannels, int outputWidth, int outputHeight, T learningRate)
 		: data_(std::move(data)), gradient_(std::move(gradient)), layers_(std::move(layers)),
-		expected_(outputChannels, outputWidth, outputHeight), learningRate_(learningRate)
+			learningRate_(learningRate)
 	{
 	}
 
-	void setDataCallbacks(std::function<void(Tensor<T>&)> inputCallback, std::function<void(Tensor<T>&)> expecCallback)
-	{
-		this->inputCallback_ = inputCallback;
-		this->expecCallback_ = expecCallback;
-	}
+	void beginEpoch() {}
 
-	void train()
+	void endEpoch() {}
+
+	void train(const Tensor<T>* input, const Tensor<T>* expected)
 	{
 		// TODO: Add my own assert!
-		assert(inputCallback_ && expecCallback_ && !data_.empty() && !layers_.empty());
 
-		inputCallback_(data_[0]);
-		expecCallback_(expected_);
-
-		forwardPropagate();
-		backwardPropagate();
+		forwardPropagate(input);
+		backwardPropagate(expected);
 
 		updateParameters();
 	}
 
-	T predict(const Tensor<T>& input, const Tensor<T>& expected)
+	T predict(const Tensor<T>* input, const Tensor<T>* expected)
 	{
 		assert(!layers_.empty() && !data_.empty());
 
-		data_[0] = input;
-		expected_ = expected;
-
-		forwardPropagate();
+		forwardPropagate(input);
 
 		Tensor<T>& output = data_[layers_.size()];
 
@@ -61,7 +52,7 @@ public:
 		T loss = 0.0f;
 
 		for (int i = 0; i < output.c_; i++)
-			loss += (output[i] - expected_[i]) * (output[i] - expected_[i]);
+			loss += (output[i] - (*expected)[i]) * (output[i] - (*expected)[i]);
 
 		/*std::cout << "Loss: " << loss << std::endl;
 		std::cout << "Input: " << std::endl << input << std::endl;
@@ -81,20 +72,21 @@ public:
 
 private:
 
-	void forwardPropagate()
+	void forwardPropagate(const Tensor<T>* input)
 	{
-		for (int i = 0; i < layers_.size(); i++)
+		layers_[0]->forwardPropagate(*input, data_[1]);
+
+		for (int i = 1; i < layers_.size(); i++)
 			layers_[i]->forwardPropagate(data_[i], data_[i + 1]);
 	}
 
-	void backwardPropagate()
+	void backwardPropagate(const Tensor<T>* expected)
 	{
 		// Reset Gradients!
 		for (int i = 0; i < gradient_.size(); i++)
 			gradient_[i].setTo(0.0f);
 
 		// LOSS
-		Tensor<T>& input = data_[0];
 		Tensor<T>& output = data_[layers_.size()];
 		Tensor<T>& doutput = gradient_[layers_.size()];
 
@@ -104,9 +96,9 @@ private:
 			loss -= expected[i] * log(std::max(0.00001f, output(i, 0, 0)));*/
 
 		for (int i = 0; i < output.c_; i++)
-			loss += (output[i] - expected_[i]) * (output[i] - expected_[i]);
+			loss += (output[i] - (*expected)[i]) * (output[i] - (*expected)[i]);
 
-		std::cout << "Loss: " << loss << std::endl;
+		// std::cout << "Loss: " << loss << '\r';
 		//std::cout << "Input: " << std::endl << input << std::endl;
 		//std::cout << "Expected: " << std::endl << expected_ << std::endl;
 		//std::cout << "Output: " << std::endl << output << std::endl;
@@ -116,9 +108,7 @@ private:
 			doutput(i, 0, 0) = -expected[i] / (output(i, 0, 0) + 0.001f);*/
 
 		for (int i = 0; i < doutput.c_; i++)
-			doutput(i, 0, 0) = 2 * (output[i] - expected_[i]);
-
-		// std::cout << "doutput: " << std::endl << output << std::endl;
+			doutput(i, 0, 0) = 2 * (output[i] - (*expected)[i]);
 
 		for (int i = layers_.size() - 1; i >= 0; i--)
 			layers_[i]->backwardPropagate(data_[i], gradient_[i], data_[i + 1], gradient_[i + 1]);
@@ -131,15 +121,11 @@ private:
 	}
 
 private:
-	std::vector<std::shared_ptr<Layer<T>>>	layers_;	// Stores the layers with the input at index zero.
-	std::vector<Tensor<T>>					data_;		// Stores the input and output of each layer.
-	std::vector<Tensor<T>>					gradient_;	// Stores the input and output gradient of each layer.
-	Tensor<T>								expected_;	// Stores the expected output for the CURRENT input.
+	std::vector<std::shared_ptr<Layer<T>>> layers_;	// Stores the layers with the input at index zero.
+	std::vector<Tensor<T>> data_;		// Stores the input and output of each layer.
+	std::vector<Tensor<T>> gradient_;	// Stores the input and output gradient of each layer.
 
 	T learningRate_;
-
-	std::function<void(Tensor<T>&)> inputCallback_;
-	std::function<void(Tensor<T>&)> expecCallback_;
 };
 
 template <typename T>
@@ -216,6 +202,7 @@ public:
 		std::vector<std::shared_ptr<Layer<T>>>	layers;
 
 		// Input layer...
+
 		data.push_back(Tensor<T>(inpLayer_.inputChannels_, inpLayer_.inputWidth_, inpLayer_.inputHeight_));
 		gradient.push_back(Tensor<T>(Tensor<T>(inpLayer_.inputChannels_, inpLayer_.inputWidth_, inpLayer_.inputHeight_)));
 
