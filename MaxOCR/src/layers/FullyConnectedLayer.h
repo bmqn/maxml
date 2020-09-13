@@ -15,7 +15,7 @@ public:
 	{
 		// TODO: Move into seperate header.
 		std::default_random_engine generator;
-		std::normal_distribution<T> distribution(0, 1.0f);
+		std::normal_distribution<T> distribution(0, 0.1);
 
 		generator.seed(time(NULL));
 
@@ -70,8 +70,12 @@ public:
 				dinput[i] += factor * weights_(0, j, i);
 		}
 
-		/*std::cout << "--------------------------------------------------" << std::endl;
-		std::cout << "weights: "	<< std::endl << weights_ << std::endl;
+		/*std::cout << "input" << std::endl << input << std::endl;
+		std::cout << "dinput" << std::endl << dinput << std::endl;
+		std::cout << "output" << std::endl << output << std::endl;
+		std::cout << "doutput" << std::endl << doutput << std::endl;*/
+
+		/*std::cout << "weights: "	<< std::endl << weights_ << std::endl;
 		std::cout << "biases: "		<< std::endl << biases_ << std::endl;
 		std::cout << "input: " << std::endl << input << std::endl;
 		std::cout << "output: " << std::endl << output << std::endl;
@@ -80,18 +84,6 @@ public:
 		std::cout << "dweights: "	<< std::endl << dweights_ << std::endl;
 		std::cout << "dbiases: "	<< std::endl << dbiases_ << std::endl;
 		std::cout << "--------------------------------------------------" << std::endl;*/
-
-		/*for (int j = 0; j < output.c_; j++)
-		{
-			for (int i = 0; i < input.c_; i++)
-			{
-				dweights_(0, i, j) = doutput(j, 0, 0) * input(i, 0, 0);
-
-				dinput(i, 0, 0) += doutput(j, 0, 0) * weights_(0, i, j);
-			}
-
-			dbiases_(j, 0, 0) = doutput(j, 0, 0);
-		}*/
 	}
 
 	virtual void updateParameters(T learningRate) override

@@ -13,53 +13,86 @@
 
 int main()
 {
-	std::vector<std::pair<double, double>> data;
+	int numberOfImages, numberOfLabels, imageSize;
+	unsigned char** img = read_mnist_images("assets/train-images.idx3-ubyte", numberOfImages, imageSize);
+	unsigned char* lab = read_mnist_labels("assets/train-labels.idx1-ubyte", numberOfLabels);
 
-	for (double i = -1000.0; i < 1000.0; i++)
+	std::vector<std::pair<Tensor<double>, Tensor<double>>> data;
+	std::vector<Tensor<double>> images;
+	
+	for (int i = 0; i < numberOfImages; i++)
 	{
-		double x = 3.14159 * (i / 1000.0);
+		data.push_back( {Tensor<double>(1, 28, 28), Tensor<double>(10, 1, 1) });
 
-		data.push_back({ x, std::sin(x)});
+		for (int j = 0; j < 28 * 28; j++)
+			data[i].first[j] = (double) img[i][j] / 255.0 - 0.5;
+
+		data[i].second[(int)lab[i]] = 1.0;
 	}
 
-	auto network = Model<double>::make(1, 1, 1, 0.0001f)
-		.addFullyConnectedLayer(100)
+	for (int i = 0; i < numberOfImages; i++)
+		delete[] img[i];
+	
+	delete[] img;
+	delete[] lab;
+
+	auto network = Model<double>::make(1, 28, 28)
+		.addFullyConnectedLayer(64)
 		.addReluLayer()
-		.addFullyConnectedLayer(50)
+		.addFullyConnectedLayer(10)
 		.addReluLayer()
-		.addFullyConnectedLayer(1)
+		.addSoftmaxLayer()
 		.build();
 
-	Tensor<double> inp(1, 1, 1);
-	Tensor<double> exp(1, 1, 1);
 	int index = 0;
+	double learningRate = 0.001f;
 
-	for (int epoch = 0; epoch < 1000; epoch++)
+	for (int epoch = 0; epoch < 5; epoch++)
 	{
-		std::cout << "Epoch " << epoch << " starting..." << std::endl;
+		network.beginEpoch();
 
 		std::shuffle(data.begin(), data.end(), std::default_random_engine());
 
 		for (; index < data.size(); index++)
 		{
-			inp[0] = data[index].first;
-			exp[0] = data[index].second;
-
-			network.train(&inp, &exp);
+			network.train(data[index].first, data[index].second, learningRate);
+			std::cout << index << ", Loss " << network.getLoss() << '\r';
 		}
 
+		std::cout << std::endl;
+
 		index = 0;
+		learningRate *= 0.99;
+
+		network.endEpoch();
 	}
 
-	std::cout << "Testing starting..." << std::endl;
-	for (double x = -1.0; x <= 1.0; x += 0.05)
+	img = read_mnist_images("assets/t10k-images.idx3-ubyte", numberOfImages, imageSize);
+	lab = read_mnist_labels("assets/t10k-labels.idx1-ubyte", numberOfLabels);
+
+	data.clear();
+
+	for (int i = 0; i < numberOfImages; i++)
 	{
-		double theta = 3.14159 * x;
+		data.push_back({ Tensor<double>(1, 28, 28), Tensor<double>(10, 1, 1) });
 
-		inp[0] = theta;
-		exp[0] = std::sin(theta);
+		for (int j = 0; j < 28 * 28; j++)
+			data[i].first[j] = (double)img[i][j] / 255.0 - 0.5;
 
-		std::cout << std::setprecision(2) << "(" << theta << ", " << network.predict(&inp, &exp) << "), ";
+		data[i].second[(int)lab[i]] = 1.0;
+	}
+
+	for (int i = 0; i < numberOfImages; i++)
+		delete[] img[i];
+
+	delete[] img;
+	delete[] lab;
+
+	std::cout << "Testing starting..." << std::endl;
+	for (int i = 0; i < numberOfImages; i++)
+	{
+		std::cout << data[i].second << std::endl << network.test(data[i].first) << std::endl;
+		std::cout << "--------------------------------------------" << std::endl;
 	}
 
 	return 0;

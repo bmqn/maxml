@@ -4,6 +4,7 @@
 #include "../layers/ConvolutionLayer.h"
 #include "../layers/FullyConnectedLayer.h"
 #include "../layers/ReluLayer.h"
+#include "../layers/SoftmaxLayer.h"
 
 #include "../utils/Tensor.h"
 
@@ -16,116 +17,134 @@ class Model
 public:
 	class Builder;
 
-	Model(std::vector<Tensor<T>>&& data, std::vector<Tensor<T>>&& gradient, std::vector<std::shared_ptr<Layer<T>>>&& layers,
-		int outputChannels, int outputWidth, int outputHeight, T learningRate)
-		: data_(std::move(data)), gradient_(std::move(gradient)), layers_(std::move(layers)),
-			learningRate_(learningRate)
+	Model(std::vector<Tensor<T>>&& data, std::vector<Tensor<T>>&& gradient, std::vector<std::shared_ptr<Layer<T>>>&& layers) : 
+		data_(std::move(data)),
+		gradient_(std::move(gradient)),
+		layers_(std::move(layers)),
+		epochCount_(0),
+		epochStarted_(false),
+		epochHistory_()
 	{
 	}
 
-	void beginEpoch() {}
+	void beginEpoch()
+	{
+		assert(!epochStarted_);
 
-	void endEpoch() {}
+		epochHistory_[epochCount_] = std::vector<T>();
+		epochStarted_ = true;
+	}
 
-	void train(const Tensor<T>* input, const Tensor<T>* expected)
+	void endEpoch()
+	{
+		assert(epochStarted_);
+
+		epochStarted_ = false;
+
+		// Print Epoch Info
+		
+		T totalLoss{ 0 };
+		int iterations = epochHistory_[epochCount_].size();
+
+		for (int i = 0; i < iterations; i++)
+			totalLoss += epochHistory_[epochCount_][i];
+
+		T avgLoss = totalLoss / (T)iterations;
+
+		std::cout << "Epoch " << epochCount_ << ", Loss " << avgLoss << std::endl;
+
+		epochCount_++;
+	}
+
+	void train(const Tensor<T>& input, const Tensor<T>& expected, T learningRate)
 	{
 		// TODO: Add my own assert!
+		assert(epochStarted_);
 
 		forwardPropagate(input);
 		backwardPropagate(expected);
 
-		updateParameters();
+		updateParameters(learningRate);
 	}
 
-	T predict(const Tensor<T>* input, const Tensor<T>* expected)
+	Tensor<T> test(const Tensor<T>& input)
 	{
-		assert(!layers_.empty() && !data_.empty());
-
 		forwardPropagate(input);
 
 		Tensor<T>& output = data_[layers_.size()];
 
-		int outputChannels = output.c_;
-		int outputWidth = output.w_;
-		int outputHeight = output.h_;
+		return output;
+	}
 
-		T loss = 0.0f;
-
-		for (int i = 0; i < output.c_; i++)
-			loss += (output[i] - (*expected)[i]) * (output[i] - (*expected)[i]);
-
-		/*std::cout << "Loss: " << loss << std::endl;
-		std::cout << "Input: " << std::endl << input << std::endl;
-		std::cout << "Expected: " << std::endl << expected << std::endl;
-		std::cout << "Output: " << std::endl << output << std::endl;
-		std::cout << "----------------------------" << std::endl;*/
-
-		return output[0];
+	T getLoss()
+	{
+		auto arr = epochHistory_[epochCount_];
+		return arr[arr.size() - 1];
 	}
 
 public:
 
-	static Builder make(int inputChannels, int inputWidth, int inputHeight, T learningRate = 0.01f)
+	static Builder make(int inputChannels, int inputWidth, int inputHeight)
 	{
-		return Model::Builder(inputChannels, inputWidth, inputHeight, learningRate);
+		return Model::Builder(inputChannels, inputWidth, inputHeight);
 	}
 
 private:
 
-	void forwardPropagate(const Tensor<T>* input)
+	void forwardPropagate(const Tensor<T>& input)
 	{
-		layers_[0]->forwardPropagate(*input, data_[1]);
+		layers_[0]->forwardPropagate(input, data_[1]);
 
 		for (int i = 1; i < layers_.size(); i++)
 			layers_[i]->forwardPropagate(data_[i], data_[i + 1]);
 	}
 
-	void backwardPropagate(const Tensor<T>* expected)
+	void backwardPropagate(const Tensor<T>& expected)
 	{
 		// Reset Gradients!
 		for (int i = 0; i < gradient_.size(); i++)
 			gradient_[i].setTo(0.0f);
 
-		// LOSS
 		Tensor<T>& output = data_[layers_.size()];
 		Tensor<T>& doutput = gradient_[layers_.size()];
 
 		T loss = 0.0f;
 
-		/*for (int i = 0; i < output.c_; i++)
-			loss -= expected[i] * log(std::max(0.00001f, output(i, 0, 0)));*/
-
 		for (int i = 0; i < output.c_; i++)
-			loss += (output[i] - (*expected)[i]) * (output[i] - (*expected)[i]);
+			loss -= expected[i] * log(output(i, 0, 0) + 0.0000001);
 
-		// std::cout << "Loss: " << loss << '\r';
-		//std::cout << "Input: " << std::endl << input << std::endl;
-		//std::cout << "Expected: " << std::endl << expected_ << std::endl;
-		//std::cout << "Output: " << std::endl << output << std::endl;
-		//std::cout << "----------------------------" << std::endl;
+		/*for (int i = 0; i < output.c_; i++)
+			loss += (output[i] - expected[i]) * (output[i] - (expected)[i]);*/
 
-		/*for (int i = 0; i < doutput.c_; i++)
-			doutput(i, 0, 0) = -expected[i] / (output(i, 0, 0) + 0.001f);*/
+		epochHistory_[epochCount_].push_back(loss);
 
 		for (int i = 0; i < doutput.c_; i++)
-			doutput(i, 0, 0) = 2 * (output[i] - (*expected)[i]);
+			doutput(i, 0, 0) = -expected[i] / (output(i, 0, 0) + 0.0000001);
+
+		/*for (int i = 0; i < doutput.c_; i++)
+			doutput(i, 0, 0) = 2 * (output[i] - expected[i]);*/
 
 		for (int i = layers_.size() - 1; i >= 0; i--)
 			layers_[i]->backwardPropagate(data_[i], gradient_[i], data_[i + 1], gradient_[i + 1]);
+
+		// std::cout << loss << std::endl;
 	}
 
-	void updateParameters()
+	void updateParameters(T learningRate)
 	{
 		for (int i = 0; i < layers_.size(); i++)
-			layers_[i]->updateParameters(learningRate_);
+			layers_[i]->updateParameters(learningRate);
 	}
 
 private:
 	std::vector<std::shared_ptr<Layer<T>>> layers_;	// Stores the layers with the input at index zero.
+	
 	std::vector<Tensor<T>> data_;		// Stores the input and output of each layer.
 	std::vector<Tensor<T>> gradient_;	// Stores the input and output gradient of each layer.
 
-	T learningRate_;
+	int epochCount_;
+	bool epochStarted_;
+	std::map<int, std::vector<T>> epochHistory_; // Epoch number -> vector of loss
 };
 
 template <typename T>
@@ -151,8 +170,8 @@ private:
 	};
 
 public:
-	Builder(int inputChannels, int inputWidth, int inputHeight, T learningRate)
-		:  layerCount_(0), learningRate_(learningRate), inpLayer_{ inputChannels, inputWidth, inputHeight }
+	Builder(int inputChannels, int inputWidth, int inputHeight) :
+		layerCount_(0), inpLayer_{ inputChannels, inputWidth, inputHeight }
 	{
 	}
 
@@ -191,7 +210,14 @@ public:
 		return *this;
 	}
 
-	Builder& addSoftmaxLayer();
+	Builder& addSoftmaxLayer()
+	{
+		std::string name = "softmax";
+
+		layerInfo_[layerCount_++] = { name, {} };
+
+		return *this;
+	}
 
 	Model build()
 	{
@@ -289,21 +315,38 @@ public:
 
 				layers.push_back(std::make_shared<ReluLayer<T>>());
 			}
+			else if (name == "softmax")
+			{
+				outputChannels = inputChannels;
+				outputWidth = inputWidth;
+				outputHeight = inputHeight;
+
+				std::cout
+					<< i + 1 << ": softmax, "
+					<< "(" << inputChannels << ", " << inputWidth << ", " << inputHeight << ") -> "
+					<< "(" << outputChannels << ", " << outputWidth << ", " << outputHeight << ")"
+					<< std::endl;
+
+				// Push back the output tensor for this layer...
+				data.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
+				gradient.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
+
+				layers.push_back(std::make_shared<SoftmaxLayer<T>>());
+			}
 
 			inputChannels = outputChannels;
 			inputWidth = outputWidth;
 			inputHeight = outputHeight;
 		}
 
-		return Model(std::move(data), std::move(gradient), std::move(layers), outputChannels, outputWidth, outputHeight, learningRate_);
+		return Model(std::move(data), std::move(gradient), std::move(layers));
 	}
 
 private:
-	int							layerCount_;
-	T						learningRate_;
-	InpLayer					inpLayer_;
-	std::vector<ConvLayer>		convLayers_;
-	std::vector<FullConLayer>	fcLayers_;
+	int layerCount_;
+	InpLayer inpLayer_;
+	std::vector<ConvLayer> convLayers_;
+	std::vector<FullConLayer> fcLayers_;
 
 	std::map<int, std::pair<std::string, int>> layerInfo_;
 

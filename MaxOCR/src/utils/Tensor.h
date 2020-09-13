@@ -22,8 +22,7 @@ struct Tensor
 
 	Tensor() : c_(0), w_(0), h_(0), size_(0), data_(nullptr) {}
 
-	Tensor(int c, int w, int h)
-		: c_(c), w_(w), h_(h), size_(c * w * h), data_(nullptr)
+	Tensor(int c, int w, int h) : c_(c), w_(w), h_(h), size_(c * w * h), data_(nullptr)
 	{
 		assert(size_ > 0);
 
@@ -32,10 +31,18 @@ struct Tensor
 		memset(data_, 0, size_ * sizeof(T));
 	}
 
-	Tensor(const Tensor<T>& tensor) = delete;
+	Tensor(const Tensor<T>& tensor) :
+		c_(tensor.c_), w_(tensor.w_), h_(tensor.h_), size_(tensor.size_), data_(nullptr)
+	{
+		assert(size_ > 0);
 
-	Tensor(Tensor<T>&& tensor)
-		: c_(tensor.c_), w_(tensor.w_), h_(tensor.h_), size_(tensor.size_), data_(tensor.data_)
+		data_ = new T[size_];
+
+		memcpy(data_, tensor.data_, size_ * sizeof(T));
+	}
+
+	Tensor(Tensor<T>&& tensor) :
+		c_(tensor.c_), w_(tensor.w_), h_(tensor.h_), size_(tensor.size_), data_(tensor.data_)
 	{
 		tensor.c_ = 0;
 		tensor.w_ = 0;
