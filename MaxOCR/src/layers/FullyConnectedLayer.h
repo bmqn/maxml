@@ -28,7 +28,7 @@ public:
 
 	virtual void forwardPropagate(const Tensor<T>& input, Tensor<T>& output) override
 	{
-		output = op::add(op::matmul(weights_, input), biases_);
+		op::add(output, op::matmul(weights_, input), biases_);
 	}
 
 	virtual void backwardPropagate(const Tensor<T>& input, Tensor<T>& dinput, const Tensor<T>& output, const Tensor<T>& doutput) override
