@@ -25,7 +25,7 @@ public:
 
 	virtual void forwardPropagate(const Tensor<T>& input, Tensor<T>& output) override
 	{
-		output.setTo(0.0f);
+		output.set(0.0f);
 
 		for (int k = 0; k < kernelNum_; k++)
 			for (int c = 0; c < input.c_; c++)

@@ -9,91 +9,38 @@ class FullyConnectedLayer : public Layer<T>
 public:
 	FullyConnectedLayer() = delete;
 
-	FullyConnectedLayer(int inputSize, int outputSize)
-		: weights_(1, outputSize, inputSize), biases_(1, 1, outputSize), dweights_(1, outputSize, inputSize),
-			dbiases_(1, 1, outputSize), inputSize_(inputSize), outputSize_(outputSize)
+	FullyConnectedLayer(int inputSize, int numNeurons) :
+		weights_(1, numNeurons, inputSize),
+		biases_(1, numNeurons, 1),
+		dweights_(1, numNeurons, inputSize),
+		dbiases_(1, numNeurons, 1)
 	{
 		// TODO: Move into seperate header.
 		std::default_random_engine generator;
-		std::normal_distribution<T> distribution(0, 0.1);
+		std::normal_distribution<T> distribution(0, 1);
 
-		generator.seed(time(NULL));
+		for (int i = 0; i < weights_.size_; i++)
+			weights_[i] = distribution(generator);
 
-		for (int i = 0; i < outputSize; i++)
-			for (int j = 0; j < inputSize; j++)
-				weights_(0, i, j) = distribution(generator);
-
-		for (int i = 0; i < outputSize; i++)
-			biases_(0, 0, i) = 0.0f;
+		for (int i = 0; i < biases_.size_; i++)
+			biases_[i] = 0;
 	}
 
 	virtual void forwardPropagate(const Tensor<T>& input, Tensor<T>& output) override
 	{
-		// std::cout << "--------------------------------------------------" << std::endl;
-
-		for (int j = 0; j < outputSize_; j++)
-		{
-			T val = 0.0f;
-
-			for (int i = 0; i < inputSize_; i++)
-			{
-				val += input[i] * (&weights_(0, j, 0))[i];
-				// std::cout << input[i] << ", " << (&weights_(0, j, 0))[i] << std::endl;
-			}
-
-			output(j, 0, 0) = val + biases_(0, 0, j);
-		}
-
-
-		/*std::cout << "weights: " << std::endl << weights_ << std::endl;
-		std::cout << "biases: " << std::endl << biases_ << std::endl;
-		std::cout << "input: " << std::endl << input << std::endl;
-		std::cout << "output: " << std::endl << output << std::endl;
-		std::cout << "--------------------------------------------------" << std::endl;*/
+		output = op::add(op::matmul(weights_, input), biases_);
 	}
 
 	virtual void backwardPropagate(const Tensor<T>& input, Tensor<T>& dinput, const Tensor<T>& output, const Tensor<T>& doutput) override
 	{
-		dweights_.setTo(0.0f);
-		dbiases_.setTo(0.0f);
+		op::matmul(dinput, op::transpose(weights_), doutput);
 
-		for (int j = 0; j < outputSize_; j++)
-		{
-			T factor = doutput(j, 0, 0);
-
-			for (int i = 0; i < inputSize_; i++)
-				dweights_(0, j, i) += factor * input[i];
-
-			dbiases_(0, 0, j) += factor;
-
-			for (int i = 0; i < inputSize_; i++)
-				dinput[i] += factor * weights_(0, j, i);
-		}
-
-		/*std::cout << "input" << std::endl << input << std::endl;
-		std::cout << "dinput" << std::endl << dinput << std::endl;
-		std::cout << "output" << std::endl << output << std::endl;
-		std::cout << "doutput" << std::endl << doutput << std::endl;*/
-
-		/*std::cout << "weights: "	<< std::endl << weights_ << std::endl;
-		std::cout << "biases: "		<< std::endl << biases_ << std::endl;
-		std::cout << "input: " << std::endl << input << std::endl;
-		std::cout << "output: " << std::endl << output << std::endl;
-		std::cout << "dinput: " << std::endl << dinput << std::endl;
-		std::cout << "doutput: " << std::endl << doutput << std::endl;
-		std::cout << "dweights: "	<< std::endl << dweights_ << std::endl;
-		std::cout << "dbiases: "	<< std::endl << dbiases_ << std::endl;
-		std::cout << "--------------------------------------------------" << std::endl;*/
+		op::matmul(dweights_, doutput, op::transpose(input));
+		op::copy(dbiases_, doutput);
 	}
 
 	virtual void updateParameters(T learningRate) override
 	{
-		/*std::cout << "dweights" << std::endl << dweights_ << std::endl;
-		std::cout << "weights" << std::endl << weights_ << std::endl;
-
-		std::cout << "dbiases" << std::endl << dbiases_ << std::endl;
-		std::cout << "biases" << std::endl << biases_ << std::endl;*/
-
 		for (int s = 0; s < dweights_.size_; s++)
 			weights_[s] -= learningRate * dweights_[s];
 
@@ -107,7 +54,4 @@ private:
 
 	Tensor<T>		dweights_;
 	Tensor<T>		dbiases_;
-	int				inputSize_;
-	int				outputSize_;
-
 };

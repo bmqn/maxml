@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../utils/Tensor.h"
+#include "maths/Tensor.h"
 
 template <typename T>
 class Layer

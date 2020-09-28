@@ -23,6 +23,7 @@ project "MaxOCR"
 
     includedirs
     {
+	"%{prj.name}/src"
         -- "vendor/opencv/build/include"
     }
 

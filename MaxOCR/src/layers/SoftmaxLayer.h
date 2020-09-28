@@ -25,15 +25,21 @@ public:
 	
 	virtual void backwardPropagate(const Tensor<T>& input, Tensor<T>& dinput, const Tensor<T>& output, const Tensor<T>& doutput) override 
 	{
-		for (int i = 0; i < input.c_; i++)
-			for (int j = 0; j < output.c_; j++)
-			{
-				if (i == j)
-					dinput(i, 0, 0) += doutput(j, 0, 0) * output(j, 0, 0) * (1 - output(j, 0, 0));
-				else
-					dinput(i, 0, 0) -= doutput(j, 0, 0) * output(j, 0, 0) * output(i, 0, 0);
-			}
+		for (int c = 0; c < input.c_; c++)
+			for (int w = 0; w < input.w_; w++)
+				for (int h = 0; h < input.h_; h++)
+				{
+					T yl = input(c, w, h);
 
+					for (int i = 0; i < input.c_; i++)
+					{
+						T scale = doutput(i, w, h);
+						T yi = doutput(i, w, h);
+
+						dinput(c, w, h) += scale * yi * ((i == c) - yl);
+					}
+				}
+					
 		/*std::cout << "input" << std::endl << input << std::endl;
 		std::cout << "dinput" << std::endl << dinput << std::endl;
 		std::cout << "output" << std::endl << output << std::endl;

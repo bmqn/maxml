@@ -1,37 +1,27 @@
 #pragma once
 
-#include "../layers/Layer.h"
-#include "../layers/ConvolutionLayer.h"
-#include "../layers/FullyConnectedLayer.h"
-#include "../layers/ReluLayer.h"
-#include "../layers/SoftmaxLayer.h"
+#include "Common.h"
 
-#include "../utils/Tensor.h"
+#include "layers/Layer.h"
+#include "layers/ConvolutionLayer.h"
+#include "layers/FullyConnectedLayer.h"
+#include "layers/ReluLayer.h"
+#include "layers/SoftmaxLayer.h"
 
-#include <functional>
-#include <map>
+#include "maths/Tensor.h"
 
-template <typename T>
 class Model
 {
-public:
-	class Builder;
 
-	Model(std::vector<Tensor<T>>&& data, std::vector<Tensor<T>>&& gradient, std::vector<std::shared_ptr<Layer<T>>>&& layers) : 
-		data_(std::move(data)),
-		gradient_(std::move(gradient)),
-		layers_(std::move(layers)),
-		epochCount_(0),
-		epochStarted_(false),
-		epochHistory_()
-	{
-	}
+friend class Builder;
+
+public:
 
 	void beginEpoch()
 	{
 		assert(!epochStarted_);
 
-		epochHistory_[epochCount_] = std::vector<T>();
+		epochHistory_[epochCount_] = std::vector<double>();
 		epochStarted_ = true;
 	}
 
@@ -43,55 +33,58 @@ public:
 
 		// Print Epoch Info
 		
-		T totalLoss{ 0 };
+		double totalLoss{ 0 };
 		int iterations = epochHistory_[epochCount_].size();
 
 		for (int i = 0; i < iterations; i++)
 			totalLoss += epochHistory_[epochCount_][i];
 
-		T avgLoss = totalLoss / (T)iterations;
+		double avgLoss = totalLoss / (double)iterations;
 
 		std::cout << "Epoch " << epochCount_ << ", Loss " << avgLoss << std::endl;
 
 		epochCount_++;
 	}
 
-	void train(const Tensor<T>& input, const Tensor<T>& expected, T learningRate)
+	void train(const Tensor<double>& input, const Tensor<double>& expected, double learningRate)
 	{
 		// TODO: Add my own assert!
 		assert(epochStarted_);
 
 		forwardPropagate(input);
-		backwardPropagate(expected);
+		backwardPropagate(input, expected);
 
 		updateParameters(learningRate);
+
+		auto arr = epochHistory_[epochCount_];
+
+		std::cout << "Epoch " << epochCount_ << ", Loss " << arr[arr.size() - 1] << '\r';
 	}
 
-	Tensor<T> test(const Tensor<T>& input)
+	void test(const Tensor<double>& input)
 	{
 		forwardPropagate(input);
 
-		Tensor<T>& output = data_[layers_.size()];
+		auto& output = data_[layers_.size()];
 
-		return output;
+		std::cout << "(" << input[0] << ", " << output[0] << "), ";
 	}
 
-	T getLoss()
-	{
-		auto arr = epochHistory_[epochCount_];
-		return arr[arr.size() - 1];
-	}
-
-public:
-
-	static Builder make(int inputChannels, int inputWidth, int inputHeight)
-	{
-		return Model::Builder(inputChannels, inputWidth, inputHeight);
-	}
+	static Builder make(int inputChannels, int inputWidth, int inputHeight);
 
 private:
 
-	void forwardPropagate(const Tensor<T>& input)
+	Model(std::vector<Tensor<double>>&& data, std::vector<Tensor<double>>&& gradient, std::vector<std::shared_ptr<Layer<double>>>&& layers) :
+		data_(std::move(data)),
+		gradient_(std::move(gradient)),
+		layers_(std::move(layers)),
+		epochCount_(0),
+		epochStarted_(false),
+		epochHistory_()
+	{
+	}
+
+	void forwardPropagate(const Tensor<double>& input)
 	{
 		layers_[0]->forwardPropagate(input, data_[1]);
 
@@ -99,58 +92,65 @@ private:
 			layers_[i]->forwardPropagate(data_[i], data_[i + 1]);
 	}
 
-	void backwardPropagate(const Tensor<T>& expected)
+	void backwardPropagate(const Tensor<double>& input, const Tensor<double>& expected)
 	{
 		// Reset Gradients!
 		for (int i = 0; i < gradient_.size(); i++)
-			gradient_[i].setTo(0.0f);
+			gradient_[i].set(0.0f);
 
-		Tensor<T>& output = data_[layers_.size()];
-		Tensor<T>& doutput = gradient_[layers_.size()];
+		Tensor<double>& output = data_[layers_.size()];
+		Tensor<double>& doutput = gradient_[layers_.size()];
 
-		T loss = 0.0f;
-
-		for (int i = 0; i < output.c_; i++)
-			loss -= expected[i] * log(output(i, 0, 0) + 0.0000001);
+		double loss = 0.0f;
 
 		/*for (int i = 0; i < output.c_; i++)
-			loss += (output[i] - expected[i]) * (output[i] - (expected)[i]);*/
+			loss -= expected[i] * log(output(i, 0, 0) + 0.0000001);*/
+
+		for (int i = 0; i < output.size_; i++)
+			loss += (output[i] - expected[i]) * (output[i] - expected[i]);
 
 		epochHistory_[epochCount_].push_back(loss);
 
-		for (int i = 0; i < doutput.c_; i++)
-			doutput(i, 0, 0) = -expected[i] / (output(i, 0, 0) + 0.0000001);
-
 		/*for (int i = 0; i < doutput.c_; i++)
-			doutput(i, 0, 0) = 2 * (output[i] - expected[i]);*/
+			doutput(i, 0, 0) = -expected[i] / (output(i, 0, 0) + 0.0000001);*/
 
-		for (int i = layers_.size() - 1; i >= 0; i--)
+		/*std::cout << expected.str() << std::endl;
+		std::cout << output.str() << std::endl;
+		std::cout << doutput.str() << std::endl;*/
+
+		for (int i = 0; i < output.size_; i++)
+			doutput[i] = 2 * (output[i] - expected[i]);
+
+		for (int i = layers_.size() - 1; i > 0; i--)
 			layers_[i]->backwardPropagate(data_[i], gradient_[i], data_[i + 1], gradient_[i + 1]);
+
+		// TODO: Try and get around requiring input here...
+		layers_[0]->backwardPropagate(input, gradient_[0], data_[1], gradient_[1]);
 
 		// std::cout << loss << std::endl;
 	}
 
-	void updateParameters(T learningRate)
+	void updateParameters(double learningRate)
 	{
 		for (int i = 0; i < layers_.size(); i++)
 			layers_[i]->updateParameters(learningRate);
 	}
 
 private:
-	std::vector<std::shared_ptr<Layer<T>>> layers_;	// Stores the layers with the input at index zero.
+	std::vector<std::shared_ptr<Layer<double>>> layers_;	// Stores the layers with the input at index zero.
 	
-	std::vector<Tensor<T>> data_;		// Stores the input and output of each layer.
-	std::vector<Tensor<T>> gradient_;	// Stores the input and output gradient of each layer.
+	std::vector<Tensor<double>> data_; // Stores the input and output of each layer.
+	std::vector<Tensor<double>> gradient_; // Stores the input and output gradient of each layer.
 
 	int epochCount_;
 	bool epochStarted_;
-	std::map<int, std::vector<T>> epochHistory_; // Epoch number -> vector of loss
+	std::map<int, std::vector<double>> epochHistory_; // Epoch number -> vector of loss
 };
 
-template <typename T>
-class Model<T>::Builder
+class Builder
 {
 private:
+
 	struct InpLayer
 	{
 		int inputChannels_;
@@ -170,10 +170,10 @@ private:
 	};
 
 public:
+
 	Builder(int inputChannels, int inputWidth, int inputHeight) :
 		layerCount_(0), inpLayer_{ inputChannels, inputWidth, inputHeight }
-	{
-	}
+	{}
 
 	Builder& addConvLayer(int kernelSize, int kernelNum)
 	{
@@ -223,14 +223,14 @@ public:
 	{
 		// Build the network...
 
-		std::vector<Tensor<T>>					data;
-		std::vector<Tensor<T>>					gradient;
-		std::vector<std::shared_ptr<Layer<T>>>	layers;
+		std::vector<Tensor<double>>					data;
+		std::vector<Tensor<double>>					gradient;
+		std::vector<std::shared_ptr<Layer<double>>>	layers;
 
 		// Input layer...
 
-		data.push_back(Tensor<T>(inpLayer_.inputChannels_, inpLayer_.inputWidth_, inpLayer_.inputHeight_));
-		gradient.push_back(Tensor<T>(Tensor<T>(inpLayer_.inputChannels_, inpLayer_.inputWidth_, inpLayer_.inputHeight_)));
+		data.push_back(Tensor<double>(inpLayer_.inputChannels_, inpLayer_.inputWidth_, inpLayer_.inputHeight_));
+		gradient.push_back(Tensor<double>(Tensor<double>(inpLayer_.inputChannels_, inpLayer_.inputWidth_, inpLayer_.inputHeight_)));
 
 		int inputChannels = inpLayer_.inputChannels_;
 		int inputWidth = inpLayer_.inputWidth_;
@@ -269,17 +269,17 @@ public:
 					<< std::endl;
 
 				// Push back the output tensor for this layer...
-				data.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
-				gradient.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
+				data.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
+				gradient.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
 
-				layers.push_back(std::make_shared<ConvolutionLayer<T>>(cv.kernelSize_, cv.kernelNum_));
+				layers.push_back(std::make_shared<ConvolutionLayer<double>>(cv.kernelSize_, cv.kernelNum_));
 			}
 			else if (name == "fc")
 			{
 				FullConLayer fc = fcLayers_[index];
 
-				outputChannels = fc.size_;
-				outputWidth = 1;
+				outputChannels = 1;
+				outputWidth = fc.size_;
 				outputHeight = 1;
 
 				int inputSize = inputChannels * inputWidth * inputHeight;
@@ -292,10 +292,10 @@ public:
 					<< std::endl;
 
 				// Push back the output tensor for this layer...
-				data.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
-				gradient.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
+				data.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
+				gradient.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
 
-				layers.push_back(std::make_shared<FullyConnectedLayer<T>>(inputSize, fc.size_));
+				layers.push_back(std::make_shared<FullyConnectedLayer<double>>(inputSize, fc.size_));
 			}
 			else if (name == "relu")
 			{
@@ -310,10 +310,10 @@ public:
 					<< std::endl;
 
 				// Push back the output tensor for this layer...
-				data.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
-				gradient.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
+				data.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
+				gradient.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
 
-				layers.push_back(std::make_shared<ReluLayer<T>>());
+				layers.push_back(std::make_shared<ReluLayer<double>>());
 			}
 			else if (name == "softmax")
 			{
@@ -328,10 +328,10 @@ public:
 					<< std::endl;
 
 				// Push back the output tensor for this layer...
-				data.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
-				gradient.push_back(Tensor<T>(Tensor<T>(outputChannels, outputWidth, outputHeight)));
+				data.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
+				gradient.push_back(Tensor<double>(Tensor<double>(outputChannels, outputWidth, outputHeight)));
 
-				layers.push_back(std::make_shared<SoftmaxLayer<T>>());
+				layers.push_back(std::make_shared<SoftmaxLayer<double>>());
 			}
 
 			inputChannels = outputChannels;
@@ -349,5 +349,9 @@ private:
 	std::vector<FullConLayer> fcLayers_;
 
 	std::map<int, std::pair<std::string, int>> layerInfo_;
-
 };
+
+Builder Model::make(int inputChannels, int inputWidth, int inputHeight)
+{
+	return Builder(inputChannels, inputWidth, inputHeight);
+}
