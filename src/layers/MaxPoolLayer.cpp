@@ -12,9 +12,9 @@ namespace mocr
 	template <typename T>
 	void MaxPoolLayer<T>::forwardPropagate(const Tensor<T> &input, Tensor<T> &output)
 	{
-		for (int c = 0; c < output.c_; c++)
-			for (int w = 0; w < output.w_; w++)
-				for (int h = 0; h < output.h_; h++)
+		for (int c = 0; c < output.C; c++)
+			for (int w = 0; w < output.W; w++)
+				for (int h = 0; h < output.H; h++)
 				{
 					T maxVal = input(c, w * stride_, h * stride_);
 
@@ -34,9 +34,9 @@ namespace mocr
 	template <typename T>
 	void MaxPoolLayer<T>::backwardPropagate(const Tensor<T> &input, Tensor<T> &dinput, const Tensor<T> &output, const Tensor<T> &doutput)
 	{
-		for (int c = 0; c < output.c_; c++)
-			for (int w = 0; w < output.w_; w++)
-				for (int h = 0; h < output.h_; h++)
+		for (int c = 0; c < output.C; c++)
+			for (int w = 0; w < output.W; w++)
+				for (int h = 0; h < output.H; h++)
 				{
 					T maxVal = input(c, w * stride_, h * stride_);
 					int maxI = 0, maxJ = 0;

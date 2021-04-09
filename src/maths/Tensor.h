@@ -8,98 +8,89 @@
 #include <assert.h>
 
 #include <iostream>
+#include <functional>
 
 namespace mocr
 {
 
 	template <typename T>
-	struct Tensor
+	class Tensor
 	{
-		// int n_; // Batches
+	private:
+		T *m_Data;
 
-		int c_; // Channels
-		int w_; // Width
-		int h_; // Height
+	public:
+		int C; // Channels
+		int W; // Width
+		int H; // Height
 
-		int size_;
+		int Size;
 
-		T *data_;
+		Tensor() : C(0), W(0), H(0), Size(0), m_Data(nullptr) {}
 
-		Tensor(int c, int w, int h) : c_(c), w_(w), h_(h), size_(c * w * h), data_(nullptr)
+		Tensor(int c, int w, int h) : C(c), W(w), H(h), Size(c * w * h), m_Data(nullptr)
 		{
-			std::cout << "Creating tensor!" << std::endl;
+			assert(Size > 0);
 
-			assert(size_ > 0);
+			m_Data = new T[Size];
 
-			data_ = new T[size_];
+			std::fill(m_Data, m_Data + Size, 0);
 
-			std::fill(data_, data_ + size_, 0);
-		}
-
-		Tensor(int c, int w, int h, std::initializer_list<T> data) : c_(c), w_(w), h_(h), size_(c * w * h), data_(nullptr)
-		{
-			std::cout << "Creating tensor!" << std::endl;
-
-			assert(size_ > 0);
-			assert(data.size() == size_);
-
-			data_ = new T[size_];
-
-			std::copy(data.begin(), data.end(), data_);
+			// std::cout << "Creating tensor!" << std::endl;
 		}
 
 		Tensor(std::initializer_list<std::initializer_list<T>> data)
 		{
-			std::cout << "Creating tensor!" << std::endl;
+			//std::cout << "Creating tensor!" << std::endl;
 
-			c_ = 1;
-			w_ = data.size();
-			h_ = 0;
+			C = 1;
+			W = data.size();
+			H = 0;
 
-			if (w_ > 0)
-				h_ = data.begin()->size();
+			if (W > 0)
+				H = data.begin()->size();
 
-			size_ = w_ * h_;
+			Size = W * H;
 
-			assert(size_ > 0);
+			assert(Size > 0);
 
-			data_ = new T[size_];
+			m_Data = new T[Size];
 
 			int i = 0;
 			for (auto &row : data)
 			{
-				std::copy(row.begin(), row.end(), data_ + h_ * i);
+				std::copy(row.begin(), row.end(), m_Data + H * i);
 				i++;
 			}
 		}
 
 		~Tensor()
 		{
-			delete[] data_;
+			delete[] m_Data;
 
-			std::cout << "Deleting tensor!" << std::endl;
+			//std::cout << "Deleting tensor!" << std::endl;
 		}
 
-		Tensor(const Tensor<T> &tensor) : c_(tensor.c_), w_(tensor.w_), h_(tensor.h_), size_(tensor.size_), data_(nullptr)
+		Tensor(const Tensor<T> &tensor) : C(tensor.C), W(tensor.W), H(tensor.H), Size(tensor.Size), m_Data(nullptr)
 		{
-			assert(size_ > 0);
+			assert(Size > 0);
 
-			data_ = new T[size_];
+			m_Data = new T[Size];
 
-			std::copy(tensor.data_, tensor.data_ + size_, data_);
+			std::copy(tensor.m_Data, tensor.m_Data + Size, m_Data);
 
-			std::cout << "Copying tensor!" << std::endl;
+			// std::cout << "Copying tensor!" << std::endl;
 		}
 
-		Tensor(Tensor<T> &&tensor) : c_(tensor.c_), w_(tensor.w_), h_(tensor.h_), size_(tensor.size_), data_(tensor.data_)
+		Tensor(Tensor<T> &&tensor) : C(tensor.C), W(tensor.W), H(tensor.H), Size(tensor.Size), m_Data(tensor.m_Data)
 		{
-			tensor.c_ = 0;
-			tensor.w_ = 0;
-			tensor.h_ = 0;
-			tensor.size_ = 0;
-			tensor.data_ = nullptr;
+			tensor.C = 0;
+			tensor.W = 0;
+			tensor.H = 0;
+			tensor.Size = 0;
+			tensor.m_Data = nullptr;
 
-			std::cout << "Moving tensor!" << std::endl;
+			// std::cout << "Moving tensor!" << std::endl;
 		}
 
 		Tensor<T> &operator=(const Tensor<T> &tensor)
@@ -107,20 +98,20 @@ namespace mocr
 			if (this == &tensor)
 				return *this;
 
-			if (data_ && size_ != tensor.size_)
+			if (Size != tensor.Size)
 			{
-				delete[] data_;
-				data_ = new T[tensor.size_];
+				delete[] m_Data;
+				m_Data = new T[tensor.Size];
 			}
 
-			c_ = tensor.c_;
-			w_ = tensor.w_;
-			h_ = tensor.h_;
-			size_ = tensor.size_;
+			C = tensor.C;
+			W = tensor.W;
+			H = tensor.H;
+			Size = tensor.Size;
 
-			std::copy(tensor.data_, tensor.data_ + size_, data_);
+			std::copy(tensor.m_Data, tensor.m_Data + Size, m_Data);
 
-			std::cout << "Assigning (copying) tensor!" << std::endl;
+			// std::cout << "Assigning (copying) tensor!" << std::endl;
 
 			return *this;
 		}
@@ -130,72 +121,72 @@ namespace mocr
 			if (this == &tensor)
 				return *this;
 
-			if (data_)
-				delete[] data_;
+			if (m_Data)
+				delete[] m_Data;
 
-			c_ = tensor.c_;
-			w_ = tensor.w_;
-			h_ = tensor.h_;
-			size_ = tensor.size_;
-			data_ = tensor.data_;
+			C = tensor.C;
+			W = tensor.W;
+			H = tensor.H;
+			Size = tensor.Size;
+			m_Data = tensor.m_Data;
 
-			tensor.c_ = 0;
-			tensor.w_ = 0;
-			tensor.h_ = 0;
-			tensor.size_ = 0;
-			tensor.data_ = nullptr;
+			tensor.C = 0;
+			tensor.W = 0;
+			tensor.H = 0;
+			tensor.Size = 0;
+			tensor.m_Data = nullptr;
 
-			std::cout << "Assigning (moving) tensor!" << std::endl;
+			//std::cout << "Assigning (moving) tensor!" << std::endl;
 
 			return *this;
 		}
 
 		T &operator()(int c, int w, int h)
 		{
-			assert(c >= 0 && c < c_);
-			assert(w >= 0 && w < w_);
-			assert(h >= 0 && h < h_);
+			assert(c >= 0 && c < C);
+			assert(w >= 0 && w < W);
+			assert(h >= 0 && h < H);
 
-			int index = c * (w_ * h_) + w * (h_) + h;
-			return data_[index];
+			int index = c * (W * H) + w * (H) + h;
+			return m_Data[index];
 		}
 
 		const T &operator()(int c, int w, int h) const
 		{
-			assert(c >= 0 && c < c_);
-			assert(w >= 0 && w < w_);
-			assert(h >= 0 && h < h_);
+			assert(c >= 0 && c < C);
+			assert(w >= 0 && w < W);
+			assert(h >= 0 && h < H);
 
-			int index = c * (w_ * h_) + w * (h_) + h;
-			return data_[index];
+			int index = c * (W * H) + w * (H) + h;
+			return m_Data[index];
 		}
 
 		T &operator[](int i)
 		{
-			assert(i >= 0 && i < size_);
+			assert(i >= 0 && i < Size);
 
-			return data_[i];
+			return m_Data[i];
 		}
 
 		const T &operator[](int i) const
 		{
-			assert(i >= 0 && i < size_);
+			assert(i >= 0 && i < Size);
 
-			return data_[i];
+			return m_Data[i];
 		}
 
 		void fill(T val)
 		{
-			for (int i = 0; i < size_; i++)
-				data_[i] = val;
+			for (int i = 0; i < Size; i++)
+				m_Data[i] = val;
 		}
 
 		void fill(int c, Tensor<T> &val)
 		{
-			assert(c >= 0 && c < c_ && val.w_ == w_ && val.h_ == val.h_);
+			assert(c >= 0 && c < C && val.W == W && val.H == val.H);
 
-			for (int i = 0; i < w_; i++)
-				for (int j = 0; j < h_; j++)
+			for (int i = 0; i < W; i++)
+				for (int j = 0; j < H; j++)
 					this->operator()(c, i, j) = val(c, i, j);
 		}
 
@@ -209,10 +200,10 @@ namespace mocr
 			int maxLen = 0;
 
 			// EXPENSIVE: Finding max number width for alignment...
-			for (int i = 0; i < size_; i++)
+			for (int i = 0; i < Size; i++)
 			{
 				std::stringstream tss;
-				tss << std::fixed << std::setprecision(2) << data_[i];
+				tss << std::fixed << std::setprecision(2) << m_Data[i];
 
 				std::string s;
 				tss >> s;
@@ -222,34 +213,38 @@ namespace mocr
 			}
 
 			// Shape
-			ss << "shp = (" << c_ << ", " << w_ << ", " << h_ << ")," << std::endl;
+			ss << "shp = (" << C << ", " << W << ", " << H << ")," << std::endl;
 
 			// Array
 			ss << "arr = ([";
-			for (int c = 0; c < c_; c++)
+			for (int c = 0; c < C; c++)
 			{
 				if (c > 0)
 					ss << std::setw(9);
 				ss << "[";
-				for (int w = 0; w < w_; w++)
+				for (int w = 0; w < W; w++)
 				{
 					if (w > 0)
 						ss << std::setw(10);
 					ss << "[";
-					for (int h = 0; h < h_; h++)
+					for (int h = 0; h < H; h++)
 					{
-						int index = c * (w_ * h_) + w * (h_) + h;
+						int index = c * (W * H) + w * (H) + h;
 
-						ss << std::fixed << std::right << std::setw(maxLen) << data_[index]; // (int)(data_[index] * 255.0f);
-						if (h < h_ - 1)
+						// TODO: Temp for easy reading...
+						if (m_Data[index] <= 0.0)
+							ss << std::fixed << std::right << std::setw(maxLen) << "";
+						else
+							ss << std::fixed << std::right << std::setw(maxLen) << m_Data[index];
+						if (h < H - 1)
 							ss << ", ";
 					}
 					ss << "]";
-					if (w < w_ - 1)
+					if (w < W - 1)
 						ss << "," << std::endl;
 				}
 				ss << "]";
-				if (c < c_ - 1)
+				if (c < C - 1)
 					ss << "," << std::endl;
 			}
 			ss << "])";
@@ -263,11 +258,11 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		Tensor<T> y(a.c_, a.w_, a.h_);
+		Tensor<T> y(a.C, a.W, a.H);
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					y(c, i, j) = a(c, i, j) + b(c, i, j);
 				}
@@ -280,9 +275,9 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					y(c, i, j) = a(c, i, j) + b(c, i, j);
 				}
@@ -293,11 +288,11 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		Tensor<T> y(a.c_, a.w_, a.h_);
+		Tensor<T> y(a.C, a.W, a.H);
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					y(c, i, j) = a(c, i, j) - b(c, i, j);
 				}
@@ -310,12 +305,29 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					y(c, i, j) = a(c, i, j) - b(c, i, j);
 				}
+	}
+
+	template <typename T>
+	Tensor<T> mult(const Tensor<T> &a, T s)
+	{
+		// TODO: size assertions
+
+		Tensor<T> y(a.C, a.W, a.H);
+
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
+				{
+					y(c, i, j) = a(c, i, j) * s;
+				}
+
+		return y;
 	}
 
 	template <typename T>
@@ -323,11 +335,11 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		Tensor<T> y(a.c_, a.w_, a.h_);
+		Tensor<T> y(a.C, a.W, a.H);
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					y(c, i, j) = a(c, i, j) * b(c, i, j);
 				}
@@ -338,17 +350,18 @@ namespace mocr
 	template <typename T>
 	Tensor<T> matmul(const Tensor<T> &a, const Tensor<T> &b)
 	{
-		assert(a.c_ == b.c_ && a.w_ == b.h_ && a.h_ == b.w_);
+		// assert(a.c_ == b.c_ && a.w_ == b.h_ && a.h_ == b.w_);
+		assert(a.C == b.C && a.H == b.W);
 
-		Tensor<T> y(a.c_, a.w_, b.h_);
+		Tensor<T> y(a.C, a.W, b.H);
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					T sum{0};
 
-					for (int k = 0; k < a.h_; k++)
+					for (int k = 0; k < a.H; k++)
 						sum += a(c, i, k) * b(c, k, j);
 
 					y(c, i, j) = sum;
@@ -362,13 +375,13 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					T sum{0};
 
-					for (int k = 0; k < a.h_; k++)
+					for (int k = 0; k < a.H; k++)
 						sum += a(c, i, k) * b(c, k, j);
 
 					y(c, i, j) = sum;
@@ -380,11 +393,11 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		Tensor<T> y(a.c_, a.h_, a.w_);
+		Tensor<T> y(a.C, a.H, a.W);
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					y(c, i, j) = a(c, j, i);
 				}
@@ -397,9 +410,9 @@ namespace mocr
 	{
 		// TODO: size assertions
 
-		for (int c = 0; c < y.c_; c++)
-			for (int i = 0; i < y.w_; i++)
-				for (int j = 0; j < y.h_; j++)
+		for (int c = 0; c < y.C; c++)
+			for (int i = 0; i < y.W; i++)
+				for (int j = 0; j < y.H; j++)
 				{
 					y(c, i, j) = a(c, j, i);
 				}
@@ -412,9 +425,9 @@ namespace mocr
 
 		T sum{0};
 
-		for (int c = 0; c < a.c_; c++)
-			for (int i = 0; i < a.w_; i++)
-				for (int j = 0; j < a.h_; j++)
+		for (int c = 0; c < a.C; c++)
+			for (int i = 0; i < a.W; i++)
+				for (int j = 0; j < a.H; j++)
 				{
 					sum += a(c, i, j);
 				}
@@ -425,13 +438,26 @@ namespace mocr
 	template <typename T>
 	Tensor<T> resize(const Tensor<T> &a, int c, int w, int h)
 	{
-		assert(c * w * h == a.size_);
+		assert(c * w * h == a.Size);
 
 		Tensor<T> y(a);
 
-		y.c_ = c;
-		y.w_ = w;
-		y.h_ = h;
+		y.C = c;
+		y.W = w;
+		y.H = h;
+
+		return y;
+	}
+
+	template <typename T>
+	Tensor<T> map(const Tensor<T> &a, std::function<T(T)> f)
+	{
+		Tensor<T> y(a.C, a.W, a.H);
+
+		for (int i = 0; i < y.Size; i++)
+		{
+			y[i] = f(a[i]);
+		}
 
 		return y;
 	}

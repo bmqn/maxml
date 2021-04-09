@@ -103,7 +103,7 @@ namespace mocr
 			/*for (int i = 0; i < output.c_; i++)
 			loss -= expected[i] * log(output(i, 0, 0) + 0.0000001);*/
 
-			for (int i = 0; i < output.size_; i++)
+			for (int i = 0; i < output.Size; i++)
 				loss += (output[i] - expected[i]) * (output[i] - expected[i]);
 
 			epochHistory_[epochCount_].push_back(loss);
@@ -115,7 +115,7 @@ namespace mocr
 		std::cout << output.str() << std::endl;
 		std::cout << doutput.str() << std::endl;*/
 
-			for (int i = 0; i < output.size_; i++)
+			for (int i = 0; i < output.Size; i++)
 				doutput[i] = 2 * (output[i] - expected[i]);
 
 			for (int i = layers_.size() - 1; i > 0; i--)

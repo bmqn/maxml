@@ -31,9 +31,9 @@ namespace mocr
 			output.fill(0.0f);
 
 			for (int k = 0; k < kernelNum_; k++)
-				for (int c = 0; c < input.c_; c++)
+				for (int c = 0; c < input.C; c++)
 				{
-					oneChannelConvolution(&kernel_(k, 0, 0), &input(c, 0, 0), input.w_, input.h_, &output(k, 0, 0));
+					oneChannelConvolution(&kernel_(k, 0, 0), &input(c, 0, 0), input.W, input.H, &output(k, 0, 0));
 				}
 		}
 

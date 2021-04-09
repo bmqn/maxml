@@ -21,10 +21,10 @@ namespace mocr
 			std::default_random_engine generator;
 			std::normal_distribution<T> distribution(0, 1);
 
-			for (int i = 0; i < weights_.size_; i++)
+			for (int i = 0; i < weights_.Size; i++)
 				weights_[i] = distribution(generator);
 
-			for (int i = 0; i < biases_.size_; i++)
+			for (int i = 0; i < biases_.Size; i++)
 				biases_[i] = 0;
 		}
 
@@ -43,10 +43,10 @@ namespace mocr
 
 		virtual void updateParameters(T learningRate) override
 		{
-			for (int s = 0; s < dweights_.size_; s++)
+			for (int s = 0; s < dweights_.Size; s++)
 				weights_[s] -= learningRate * dweights_[s];
 
-			for (int s = 0; s < dbiases_.size_; s++)
+			for (int s = 0; s < dbiases_.Size; s++)
 				biases_[s] -= learningRate * dbiases_[s];
 		}
 

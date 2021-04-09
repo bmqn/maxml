@@ -15,26 +15,26 @@ namespace mocr
 			T max = input(0, 0, 0);
 			T denom = 0.0f;
 
-			for (int i = 0; i < input.c_; i++)
+			for (int i = 0; i < input.C; i++)
 				if (input(i, 0, 0) > max)
 					max = input(i, 0, 0);
 
-			for (int i = 0; i < input.c_; i++)
+			for (int i = 0; i < input.C; i++)
 				denom += exp(input(i, 0, 0) - max);
 
-			for (int i = 0; i < output.c_; i++)
+			for (int i = 0; i < output.C; i++)
 				output(i, 0, 0) = exp(input(i, 0, 0) - max) / denom;
 		}
 
 		virtual void backwardPropagate(const Tensor<T> &input, Tensor<T> &dinput, const Tensor<T> &output, const Tensor<T> &doutput) override
 		{
-			for (int c = 0; c < input.c_; c++)
-				for (int w = 0; w < input.w_; w++)
-					for (int h = 0; h < input.h_; h++)
+			for (int c = 0; c < input.C; c++)
+				for (int w = 0; w < input.W; w++)
+					for (int h = 0; h < input.H; h++)
 					{
 						T yl = input(c, w, h);
 
-						for (int i = 0; i < input.c_; i++)
+						for (int i = 0; i < input.C; i++)
 						{
 							T scale = doutput(i, w, h);
 							T yi = doutput(i, w, h);
