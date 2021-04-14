@@ -3,6 +3,8 @@
 
 #include "layers/Layer.h"
 
+#include "maths/Activations.h"
+
 #include <vector>
 #include <random>
 #include <iostream>
@@ -23,8 +25,8 @@ namespace mocr
     private:
         struct Layer
         {
-            virtual Tensor<double> forward(const Tensor<double> &input) = 0;
-            virtual Tensor<double> backward(const Tensor<double> &delta) = 0;
+            virtual const Tensor<double> &forward(const Tensor<double> &input) = 0;
+            virtual const Tensor<double> &backward(const Tensor<double> &delta) = 0;
             virtual void update(double learningRate) = 0;
 
             Layer() = delete;
@@ -33,6 +35,7 @@ namespace mocr
             std::size_t Size;
             Tensor<double> Input;
             Tensor<double> Output;
+            Tensor<double> Delta;
         };
 
         struct NeuronLayer : public Layer
@@ -42,7 +45,7 @@ namespace mocr
             {
             }
 
-            virtual Tensor<double> forward(const Tensor<double> &input) override
+            virtual const Tensor<double> &forward(const Tensor<double> &input) override
             {
                 Input = input;
                 Output = mocr::add(mocr::matmul(Weights, input), Biases);
@@ -50,25 +53,25 @@ namespace mocr
                 return Output;
             }
 
-            virtual Tensor<double> backward(const Tensor<double> &delta) override
+            virtual const Tensor<double> &backward(const Tensor<double> &delta) override
             {
-                dWeights = mocr::matmul(delta, mocr::transpose(Input));
-                dBiases = delta;
+                DWeights = mocr::matmul(delta, mocr::transpose(Input));
+                DBiases = delta;
+                Delta = mocr::matmul(mocr::transpose(Weights), delta);
 
-                return mocr::matmul(mocr::transpose(Weights), delta);
+                return Delta;
             }
 
             virtual void update(double learningRate) override
             {
-                Weights = mocr::sub(Weights, mocr::mult(dWeights, learningRate));
-                Biases = mocr::sub(Biases, mocr::mult(dBiases, learningRate));
+                Weights = mocr::sub(Weights, mocr::mult(DWeights, learningRate));
+                Biases = mocr::sub(Biases, mocr::mult(DBiases, learningRate));
             }
 
             Tensor<double> Weights;
             Tensor<double> Biases;
-
-            Tensor<double> dWeights;
-            Tensor<double> dBiases;
+            Tensor<double> DWeights;
+            Tensor<double> DBiases;
         };
 
         struct ActivationLayer : public Layer
@@ -78,7 +81,7 @@ namespace mocr
             {
             }
 
-            virtual Tensor<double> forward(const Tensor<double> &input) override
+            virtual const Tensor<double> &forward(const Tensor<double> &input) override
             {
                 Input = input;
 
@@ -98,79 +101,54 @@ namespace mocr
                 return Output;
             }
 
-            virtual Tensor<double> backward(const Tensor<double> &delta) override
+            virtual const Tensor<double> &backward(const Tensor<double> &delta) override
             {
                 switch (Acti)
                 {
                 case Activation::SIGMOID:
-                    return mocr::mult(mocr::map<double>(Input, [](double x) { return sigPrime(x); }), delta);
+                    Delta = mocr::mult(mocr::map<double>(Input, [](double x) { return sigPrime(x); }), delta);
                     break;
                 case Activation::TANH:
-                    return mocr::mult(mocr::map<double>(Input, [](double x) { return tanhPrime(x); }), delta);
+                    Delta = mocr::mult(mocr::map<double>(Input, [](double x) { return tanhPrime(x); }), delta);
                     break;
                 case Activation::RELU:
-                    return mocr::mult(mocr::map<double>(Input, [](double x) { return reluPrime(x); }), delta);
+                    Delta = mocr::mult(mocr::map<double>(Input, [](double x) { return reluPrime(x); }), delta);
                     break;
                 }
+
+                return Delta;
             }
 
             virtual void update(double learningRate) override{};
 
             Activation Acti;
-
-        private:
-            static double sig(double x)
-            {
-                return 1.0 / (1.0 + std::exp(-x));
-            }
-
-            static double sigPrime(double x)
-            {
-                return sig(x) * (1.0 - sig(x));
-            }
-
-            static double relu(double x)
-            {
-                return x < 0.0 ? 0.0 : x;
-            }
-
-            static double reluPrime(double x)
-            {
-                return x < 0.0 ? 0.0 : 1.0;
-            }
-
-            static double tanh(double x)
-            {
-                return std::tanh(x);
-            }
-
-            static double tanhPrime(double x)
-            {
-                return 1.0 / (std::cosh(x) * std::cosh(x));
-            }
         };
 
     public:
-        Sequential(std::size_t inputs) : m_Inputs(inputs)
+        Sequential() = delete;
+        Sequential(std::size_t inputs, double learningRate = 0.01)
+            : m_Inputs(inputs), m_LearningRate(learningRate)
         {
             m_Layers.reserve(5);
         }
 
         void addLayer(int neurons, Activation activation);
 
-        Tensor<double> feedForward(const Tensor<double> &input);
+        Tensor<double> feedForward(Tensor<double> &input);
         double feedBackward(const Tensor<double> &expected);
 
     private:
         std::vector<std::shared_ptr<Layer>> m_Layers;
         std::size_t m_Inputs;
+
+        double m_LearningRate;
     };
 
-    Tensor<double> Sequential::feedForward(const Tensor<double> &input)
+    Tensor<double> Sequential::feedForward(Tensor<double> &input)
     {
-        Tensor<double> inp = input;
+        auto &inp = input;
 
-        for (auto it = m_Layers.begin(); it != m_Layers.end(); ++it)
+        for (auto it = m_Layers.cbegin(); it != m_Layers.cend(); ++it)
         {
             inp = (*it)->forward(inp);
         }
@@ -180,16 +158,18 @@ namespace mocr
 
     double Sequential::feedBackward(const Tensor<double> &expected)
     {
-        Tensor<double> output = m_Layers.back()->Output;
-        Tensor<double> delta = mocr::sub(output, expected);
+        auto &output = m_Layers.back()->Output;
 
-        double loss = mocr::sum(mocr::mult(mocr::map<double>(mocr::sub(output, expected), [](double x) { return x * x; }), 0.5));
+        auto diff = mocr::sub(output, expected);
+        auto loss = mocr::sum(mocr::mult(mocr::map<double>(diff, [](double x) { return x * x; }), 0.5));
 
-        for (auto it = m_Layers.rbegin(); it != m_Layers.rend(); ++it)
+        auto &delta = diff;
+
+        for (auto it = m_Layers.crbegin(); it != m_Layers.crend(); ++it)
         {
             delta = (*it)->backward(delta);
 
-            (*it)->update(0.01);
+            (*it)->update(m_LearningRate);
         }
 
         return loss;

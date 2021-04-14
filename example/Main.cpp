@@ -35,7 +35,7 @@ int main(void)
 		delete[] lab;
 	}
 
-	mocr::Sequential seq(1 * 28 * 28);
+	mocr::Sequential seq(1 * 28 * 28, 0.1);
 
 	seq.addLayer(512, mocr::Activation::SIGMOID);
 	seq.addLayer(128, mocr::Activation::SIGMOID);
@@ -58,15 +58,15 @@ int main(void)
 	{
 		int choice = rand() % data.size();
 
-		mocr::Tensor<double> digi = data[choice].first;
-		mocr::Tensor<double> inp = mocr::resize(digi, 1, 28 * 28, 1);
+		mocr::Tensor<double> raw = data[choice].first;
+		mocr::Tensor<double> inp = mocr::resize(raw, 1, 28 * 28, 1);
 		mocr::Tensor<double> exp = data[choice].second;
 
 		auto pred = seq.feedForward(inp);
 		auto diff = mocr::sub(exp, pred);
 
 		std::cout << "\x1B[2J\x1B[H";
-		std::cout << digi.str() << std::endl;
+		std::cout << raw.str() << std::endl;
 		std::cout << diff.str() << std::endl;
 
 		std::cin.get();
