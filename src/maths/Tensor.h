@@ -34,15 +34,20 @@ namespace mocr
 
 			m_Data = new T[Size];
 
-			std::fill(m_Data, m_Data + Size, 0);
+			std::fill(m_Data, m_Data + Size, 0.0);
+		}
 
-			// std::cout << "Creating tensor!" << std::endl;
+		Tensor(std::initializer_list<T> data) : C(1), W(data.size()), H(1), Size(data.size())
+		{
+			assert(Size > 0);
+
+			m_Data = new T[Size];
+
+			std::copy(data.begin(), data.end(), m_Data);
 		}
 
 		Tensor(std::initializer_list<std::initializer_list<T>> data)
 		{
-			//std::cout << "Creating tensor!" << std::endl;
-
 			C = 1;
 			W = data.size();
 			H = 0;
@@ -62,13 +67,6 @@ namespace mocr
 				std::copy(row.begin(), row.end(), m_Data + H * i);
 				i++;
 			}
-		}
-
-		~Tensor()
-		{
-			delete[] m_Data;
-
-			//std::cout << "Deleting tensor!" << std::endl;
 		}
 
 		Tensor(const Tensor<T> &tensor) : C(tensor.C), W(tensor.W), H(tensor.H), Size(tensor.Size), m_Data(nullptr)
@@ -91,6 +89,13 @@ namespace mocr
 			tensor.m_Data = nullptr;
 
 			// std::cout << "Moving tensor!" << std::endl;
+		}
+
+		~Tensor()
+		{
+			delete[] m_Data;
+
+			//std::cout << "Deleting tensor!" << std::endl;
 		}
 
 		Tensor<T> &operator=(const Tensor<T> &tensor)
@@ -232,7 +237,7 @@ namespace mocr
 						int index = c * (W * H) + w * (H) + h;
 
 						// TODO: Temp for easy reading...
-						if (m_Data[index] <= 0.0)
+						if (false) // m_Data[index] <= 0.0)
 							ss << std::fixed << std::right << std::setw(maxLen) << "";
 						else
 							ss << std::fixed << std::right << std::setw(maxLen) << m_Data[index];
@@ -425,12 +430,10 @@ namespace mocr
 
 		T sum{0};
 
-		for (int c = 0; c < a.C; c++)
-			for (int i = 0; i < a.W; i++)
-				for (int j = 0; j < a.H; j++)
-				{
-					sum += a(c, i, j);
-				}
+		for (int i = 0; i < a.Size; i++)
+		{
+			sum += a[i];
+		}
 
 		return sum;
 	}

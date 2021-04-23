@@ -106,7 +106,7 @@ namespace mocr
                 switch (Acti)
                 {
                 case Activation::SIGMOID:
-                    Delta = mocr::mult(mocr::map<double>(Input, [](double x) { return sigPrime(x); }), delta);
+                    Delta = mocr::mult(mocr::map<double>(Output, [](double x) { return x * (1.0 - x); }), delta);
                     break;
                 case Activation::TANH:
                     Delta = mocr::mult(mocr::map<double>(Input, [](double x) { return tanhPrime(x); }), delta);
@@ -126,15 +126,15 @@ namespace mocr
 
     public:
         Sequential() = delete;
-        Sequential(std::size_t inputs, double learningRate = 0.01)
+        Sequential(std::size_t inputs, double learningRate = 0.1)
             : m_Inputs(inputs), m_LearningRate(learningRate)
         {
             m_Layers.reserve(5);
         }
 
-        void addLayer(int neurons, Activation activation);
+        void addLayer(int outputs, Activation activation);
 
-        Tensor<double> feedForward(Tensor<double> &input);
+        Tensor<double> feedForward(const Tensor<double> &input);
         double feedBackward(const Tensor<double> &expected);
 
     private:
@@ -144,26 +144,41 @@ namespace mocr
         double m_LearningRate;
     };
 
-    Tensor<double> Sequential::feedForward(Tensor<double> &input)
+    Tensor<double> Sequential::feedForward(const Tensor<double> &input)
     {
-        auto &inp = input;
+        // Make a copy ... TODO: this is inefficient.
+        auto inp = Tensor(input);
+
+        auto &curr = inp;
 
         for (auto it = m_Layers.cbegin(); it != m_Layers.cend(); ++it)
         {
-            inp = (*it)->forward(inp);
+            curr = (*it)->forward(curr);
         }
 
-        return inp;
+        // Softmax ...
+        // auto sum = mocr::sum(mocr::map<double>(curr, [](double x) { return std::exp(x); }));
+        // auto out = mocr::map<double>(curr, [=](double x) { return std::exp(x) / sum; });
+
+        return curr;
     }
 
     double Sequential::feedBackward(const Tensor<double> &expected)
     {
         auto &output = m_Layers.back()->Output;
 
-        auto diff = mocr::sub(output, expected);
-        auto loss = mocr::sum(mocr::mult(mocr::map<double>(diff, [](double x) { return x * x; }), 0.5));
+        // Mean Square Error ...
+        auto error = mocr::sum(mocr::map<double>(mocr::sub(expected, output), [](double x) { return x * x; })) * 0.5;
+        auto deriv = mocr::sub(output, expected);
 
-        auto &delta = diff;
+        // Softmax + Cross Entropy ...
+        // auto sum = mocr::sum(mocr::map<double>(output, [](double x) { return std::exp(x); }));
+        // auto out = mocr::map<double>(output, [=](double x) { return std::exp(x) / sum; });
+
+        // auto error = -1.0 * mocr::sum(mocr::mult(expected, mocr::map<double>(out, [](double x) { return std::log(x); })));
+        // auto deriv = mocr::sub(out, expected);
+
+        auto &delta = deriv;
 
         for (auto it = m_Layers.crbegin(); it != m_Layers.crend(); ++it)
         {
@@ -172,24 +187,26 @@ namespace mocr
             (*it)->update(m_LearningRate);
         }
 
-        return loss;
+        return error;
     }
 
-    void Sequential::addLayer(int neurons, Activation activation)
+    void Sequential::addLayer(int outputs, Activation activation)
     {
         int inputs = m_Layers.size() == 0 ? m_Inputs : m_Layers.back()->Size;
 
-        std::default_random_engine generator;
-        std::normal_distribution distribution(0.0, 1.0);
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::normal_distribution dist(0.0, 1.0);
+        double scale = std::sqrt(1.0 / inputs);
 
-        Tensor<double> weights(1, neurons, inputs);
-        Tensor<double> biases(1, neurons, 1);
+        Tensor<double> weights(1, outputs, inputs);
+        Tensor<double> biases(1, outputs, 1);
 
         for (int i = 0; i < weights.Size; i++)
-            weights[i] = distribution(generator);
+            weights[i] = dist(mt) * scale;
 
-        m_Layers.push_back(std::make_shared<NeuronLayer>(neurons, std::move(weights), std::move(biases)));
-        m_Layers.push_back(std::make_shared<ActivationLayer>(neurons, activation));
+        m_Layers.push_back(std::make_shared<NeuronLayer>(outputs, std::move(weights), std::move(biases)));
+        m_Layers.push_back(std::make_shared<ActivationLayer>(outputs, activation));
     }
 
 }
