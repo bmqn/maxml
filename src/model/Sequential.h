@@ -15,7 +15,7 @@ namespace mocr
         RELU
     };
 
-    enum class ObjectiveFunc
+    enum class LossFunc
     {
         MSE
     };
@@ -25,12 +25,12 @@ namespace mocr
     private:
         struct Layer
         {
+            Layer() = delete;
+            Layer(std::size_t size) : Size(size) {}
+
             virtual const Tensor<double> &forward(const Tensor<double> &input) = 0;
             virtual const Tensor<double> &backward(const Tensor<double> &delta) = 0;
             virtual void update(double learningRate) = 0;
-
-            Layer() = delete;
-            Layer(std::size_t size) : Size(size) {}
 
             std::size_t Size;
             Tensor<double> Input;
@@ -71,7 +71,7 @@ namespace mocr
 
     public:
         Sequential() = delete;
-        Sequential(std::size_t inputs, ObjectiveFunc objectiveFunc, double learningRate = 0.1)
+        Sequential(std::size_t inputs, LossFunc objectiveFunc, double learningRate = 0.1)
             : m_Inputs(inputs), m_ObjectiveFunc(objectiveFunc), m_LearningRate(learningRate)
         {
         }
@@ -83,8 +83,7 @@ namespace mocr
     private:
         std::vector<std::shared_ptr<Layer>> m_Layers;
         std::size_t m_Inputs;
-
-        ObjectiveFunc m_ObjectiveFunc;
+        LossFunc m_ObjectiveFunc;
         double m_LearningRate;
     };
 }

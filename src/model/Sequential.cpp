@@ -87,7 +87,7 @@ namespace mocr
     {
         auto &output = m_Layers.back()->Output;
 
-        if (m_ObjectiveFunc == ObjectiveFunc::MSE)
+        if (m_ObjectiveFunc == LossFunc::MSE)
         {
             // Mean Square Error ...
 
