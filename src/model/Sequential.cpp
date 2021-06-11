@@ -7,65 +7,69 @@
 namespace mocr
 {
 
-    const Tensor<double> &Sequential::NeuronLayer::forward(const Tensor<double> &input)
+    const Tensor<double> &Sequential::FullyConLayer::forward(const Tensor<double> &input)
     {
         Input = input;
-        Output = mocr::add(mocr::matmul(Weights, input), Biases);
+        Output = Tensor<double>::add(Tensor<double>::matmul(Weights, input), Biases);
 
         return Output;
     }
 
-    const Tensor<double> &Sequential::NeuronLayer::backward(const Tensor<double> &delta)
+    const Tensor<double> &Sequential::FullyConLayer::backward(const Tensor<double> &delta)
     {
-        DWeights = mocr::matmul(delta, mocr::transpose(Input));
+
+        DWeights = Tensor<double>::matmul(delta, Tensor<double>::transpose(Input));
         DBiases = delta;
-        Delta = mocr::matmul(mocr::transpose(Weights), delta);
+        DOutput = delta;
+        DInput = Tensor<double>::matmul(Tensor<double>::transpose(Weights), delta);
 
-        return Delta;
+        return DInput;
     }
 
-    void Sequential::NeuronLayer::update(double learningRate)
+    void Sequential::FullyConLayer::update(double learningRate)
     {
-        Weights = mocr::sub(Weights, mocr::mult(DWeights, learningRate));
-        Biases = mocr::sub(Biases, mocr::mult(DBiases, learningRate));
+        Weights = Tensor<double>::sub(Weights, Tensor<double>::mult(DWeights, learningRate));
+        Biases = Tensor<double>::sub(Biases, Tensor<double>::mult(DBiases, learningRate));
     }
 
-    const Tensor<double> &Sequential::ActivationLayer::forward(const Tensor<double> &input)
+    const Tensor<double> &Sequential::ActvLayer::forward(const Tensor<double> &input)
     {
         Input = input;
 
         switch (Activation)
         {
         case ActivationFunc::SIGMOID:
-            Output = mocr::map<double>(input, [](double x) { return sig(x); });
+            Output = Tensor<double>::map(input, [](double x) { return sig(x); });
             break;
         case ActivationFunc::TANH:
-            Output = mocr::map<double>(input, [](double x) { return tanh(x); });
+            Output = Tensor<double>::map(input, [](double x) { return tanh(x); });
             break;
         case ActivationFunc::RELU:
-            Output = mocr::map<double>(input, [](double x) { return relu(x); });
+            Output = Tensor<double>::map(input, [](double x) { return relu(x); });
             break;
         }
 
         return Output;
     }
 
-    const Tensor<double> &Sequential::ActivationLayer::backward(const Tensor<double> &delta)
+    const Tensor<double> &Sequential::ActvLayer::backward(const Tensor<double> &delta)
     {
+        DOutput = delta;
+
         switch (Activation)
         {
         case ActivationFunc::SIGMOID:
-            Delta = mocr::mult(mocr::map<double>(Output, [](double x) { return x * (1.0 - x); }), delta);
+            DInput = Tensor<double>::mult(Tensor<double>::map(Output, [](double x) { return x * (1.0 - x); }), delta);
             break;
         case ActivationFunc::TANH:
-            Delta = mocr::mult(mocr::map<double>(Input, [](double x) { return tanhPrime(x); }), delta);
+            DInput = Tensor<double>::mult(Tensor<double>::map(Input, [](double x) { return tanhPrime(x); }), delta);
             break;
         case ActivationFunc::RELU:
-            Delta = mocr::mult(mocr::map<double>(Input, [](double x) { return reluPrime(x); }), delta);
+            DInput = Tensor<double>::mult(Tensor<double>::map(Input, [](double x) { return reluPrime(x); }), delta);
             break;
         }
 
-        return Delta;
+        return DInput;
     }
 
     Tensor<double> Sequential::feedForward(const Tensor<double> &input)
@@ -91,8 +95,8 @@ namespace mocr
         {
             // Mean Square Error ...
 
-            auto error = mocr::sum(mocr::map<double>(mocr::sub(expected, output), [](double x) { return x * x; })) * 0.5;
-            auto deriv = mocr::sub(output, expected);
+            auto error = Tensor<double>::sum(Tensor<double>::map(Tensor<double>::sub(expected, output), [](double x) { return x * x; })) * 0.5;
+            auto deriv = Tensor<double>::sub(output, expected);
 
             auto &delta = deriv;
 
@@ -111,9 +115,11 @@ namespace mocr
         }
     }
 
-    void Sequential::addLayer(int outputs, ActivationFunc activation)
+    void Sequential::addFullyConnectedLayer(int connections, ActivationFunc activation)
     {
-        int inputs = m_Layers.size() == 0 ? m_Inputs : m_Layers.back()->Size;
+        // TODO: conversion layer if previous is conv layer.
+
+        auto inputs = m_Layers.size() == 0 ? m_InRows : m_Layers.back()->Rows;
 
         std::random_device rd;
         std::mt19937 mt(rd());
@@ -121,14 +127,14 @@ namespace mocr
 
         double scale = std::sqrt(1.0 / inputs);
 
-        Tensor<double> weights(1, outputs, inputs);
-        Tensor<double> biases(1, outputs, 1);
+        Tensor<double> weights(1, connections, inputs);
+        Tensor<double> biases(1, connections, 1);
 
-        for (int i = 0; i < weights.Size; i++)
+        for (int i = 0; i < weights.size(); i++)
             weights[i] = dist(mt) * scale;
 
-        m_Layers.push_back(std::make_shared<NeuronLayer>(outputs, std::move(weights), std::move(biases)));
-        m_Layers.push_back(std::make_shared<ActivationLayer>(outputs, activation));
+        m_Layers.push_back(std::make_shared<FullyConLayer>(std::move(weights), std::move(biases)));
+        m_Layers.push_back(std::make_shared<ActvLayer>(1, connections, 1, activation));
     }
 
 }

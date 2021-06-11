@@ -108,10 +108,9 @@ int main(void)
 			{{0.01000416840350}, {0.00470214243787}},
 			{{0.00000000000000}, {0.00000000000000}}};
 
-	mocr::Sequential seq(1, mocr::LossFunc::MSE, 0.1);
-
-	seq.addLayer(16, mocr::ActivationFunc::SIGMOID);
-	seq.addLayer(1, mocr::ActivationFunc::SIGMOID);
+	mocr::Sequential seq(1, 1, 1, mocr::LossFunc::MSE, 0.1);
+	seq.addFullyConnectedLayer(16, mocr::ActivationFunc::SIGMOID);
+	seq.addFullyConnectedLayer(1, mocr::ActivationFunc::SIGMOID);
 
 	for (int i = 0; i < 50000; i++)
 	{
