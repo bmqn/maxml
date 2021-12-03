@@ -12,21 +12,28 @@
 
 namespace mocr
 {
+	template<typename T>
+	class Tensor;
+
+	using DTensor = Tensor<double>;
+	using FTensor = Tensor<float>;
+	using ITensor = Tensor<int>;
+
 	template <typename T>
 	class Tensor
 	{
 	private:
 		T *m_Data;
 
-		unsigned int m_Channels;
-		unsigned int m_Rows;
-		unsigned int m_Cols;
-		unsigned int m_Size;
+		int m_Channels;
+		int m_Rows;
+		int m_Cols;
+		int m_Size;
 
 	public:
 		Tensor() : m_Channels(0), m_Rows(0), m_Cols(0), m_Size(0), m_Data(nullptr) {}
 
-		Tensor(unsigned int c, unsigned int w, unsigned int h) : m_Channels(c), m_Rows(w), m_Cols(h), m_Size(c * w * h), m_Data(nullptr)
+		Tensor(int c, int w, int h) : m_Channels(c), m_Rows(w), m_Cols(h), m_Size(c * w * h), m_Data(nullptr)
 		{
 			assert(m_Size > 0);
 
@@ -35,7 +42,7 @@ namespace mocr
 			std::fill(m_Data, m_Data + m_Size, 0.0);
 		}
 
-		Tensor(std::initializer_list<T> data) : m_Channels(1), m_Rows(data.size()), m_Cols(1), m_Size(data.size())
+		Tensor(std::initializer_list<T> data) : m_Channels(1), m_Rows(static_cast<int>(data.size())), m_Cols(1), m_Size(static_cast<int>(data.size()))
 		{
 			assert(m_Size > 0);
 
@@ -134,7 +141,7 @@ namespace mocr
 			return *this;
 		}
 
-		T &operator()(unsigned int c, unsigned int w, unsigned int h)
+		T &operator()(int c, int w, int h)
 		{
 			assert(c >= 0 && c < m_Channels);
 			assert(w >= 0 && w < m_Rows);
@@ -144,7 +151,7 @@ namespace mocr
 			return m_Data[index];
 		}
 
-		const T &operator()(unsigned int c, unsigned int w, unsigned int h) const
+		const T &operator()(int c, int w, int h) const
 		{
 			assert(c >= 0 && c < m_Channels);
 			assert(w >= 0 && w < m_Rows);
@@ -154,36 +161,36 @@ namespace mocr
 			return m_Data[index];
 		}
 
-		T &operator[](unsigned int index)
+		T &operator[](int index)
 		{
 			assert(index >= 0 && index < m_Size);
 
 			return m_Data[index];
 		}
 
-		const T &operator[](unsigned int index) const
+		const T &operator[](int index) const
 		{
 			assert(index >= 0 && index < m_Size);
 
 			return m_Data[index];
 		}
 
-		unsigned int size()
+		int size()
 		{
 			return m_Size;
 		}
 
-		unsigned int channels()
+		int channels()
 		{
 			return m_Channels;
 		}
 
-		unsigned int rows()
+		int rows()
 		{
 			return m_Rows;
 		}
 
-		unsigned int cols()
+		int cols()
 		{
 			return m_Cols;
 		}
@@ -194,7 +201,7 @@ namespace mocr
 				m_Data[i] = val;
 		}
 
-		void fill(unsigned int c, Tensor<T> &val)
+		void fill(int c, Tensor<T> &val)
 		{
 			assert(c >= 0 && c < m_Channels && val.m_Rows == m_Rows && val.m_Cols == val.m_Cols);
 
@@ -434,7 +441,7 @@ namespace mocr
 			return sum;
 		}
 
-		static Tensor<T> resize(const Tensor<T> &a, unsigned int c, unsigned int w, unsigned int h)
+		static Tensor<T> resize(const Tensor<T> &a, int c, int w, int h)
 		{
 			assert(c * w * h == a.m_Size);
 

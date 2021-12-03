@@ -4,7 +4,7 @@
 
 int main(void)
 {
-	std::vector<std::pair<mocr::Tensor<double>, mocr::Tensor<double>>> data =
+	std::vector<std::pair<mocr::DTensor, mocr::DTensor>> data =
 		{
 			{{1.00000000000000}, {1.00000000000000}},
 			{{0.98999583159649}, {0.99651180089436}},
@@ -112,7 +112,9 @@ int main(void)
 	seq.addFullyConnectedLayer(16, mocr::ActivationFunc::SIGMOID);
 	seq.addFullyConnectedLayer(1, mocr::ActivationFunc::SIGMOID);
 
-	for (int i = 0; i < 50000; i++)
+	const int iterations = 10000;
+
+	for (int i = 0; i < iterations; i++)
 	{
 		int choice = rand() % data.size();
 
@@ -134,8 +136,8 @@ int main(void)
 	{
 		double x = (double)i / (double)points;
 
-		mocr::Tensor<double> inp = {x};
-		mocr::Tensor<double> out = seq.feedForward(inp);
+		mocr::DTensor inp = {x};
+		mocr::DTensor out = seq.feedForward(inp);
 
 		if (i < points)
 			ss << "(" << inp[0] << ", " << out[0] << "),";

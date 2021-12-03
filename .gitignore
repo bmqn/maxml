@@ -11,3 +11,4 @@ build/
 
 # CMake
 CMakeFiles
+CMakeSettings.json

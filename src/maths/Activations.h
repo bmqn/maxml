@@ -5,7 +5,6 @@
 
 namespace mocr
 {
-
     // TODO: Optimise these functions.
 
     static double sig(double x)
