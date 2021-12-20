@@ -28,7 +28,7 @@ namespace mocr
 
         void addFullyConnectedLayer(int connections, ActivationFunc activation);
 
-        DTensor feedForward(DTensor &input);
+        DTensor feedForward(DTensor input);
         double feedBackward(const DTensor &expected);
 
     private:

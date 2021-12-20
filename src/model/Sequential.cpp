@@ -4,7 +4,7 @@
 
 namespace mocr
 {
-    DTensor Sequential::feedForward(DTensor &input)
+    DTensor Sequential::feedForward(DTensor input)
     {
         auto &curr = input;
 

@@ -229,7 +229,7 @@ namespace mocr
 				tss >> s;
 
 				if (s.length() > maxLen)
-					maxLen = s.length();
+					maxLen = static_cast<int>(s.length());
 			}
 
 			// Shape
