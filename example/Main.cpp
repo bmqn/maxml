@@ -1,9 +1,10 @@
-#include "model/Sequential.h"
-#include "maths/Tensor.h"
+#include "mocr/Sequential.h"
+#include "mocr/Tensor.h"
 
 #include "MnistLoader.h"
 
 #include <iostream>
+#include <limits>
 
 static void RegressionExample()
 {
@@ -116,19 +117,19 @@ static void RegressionExample()
 	seq.addFullyConnectedLayer(16, mocr::ActivationFunc::SIGMOID);
 	seq.addFullyConnectedLayer(1, mocr::ActivationFunc::SIGMOID);
 
-	const int iterations = 10000;
+	const int numIterations = 10000;
 
-	for (int i = 0; i < iterations; i++)
+	for (int i = 0; i < numIterations; i++)
 	{
 		int choice = rand() % data.size();
 
-		auto inp = data[choice].first;
-		auto exp = data[choice].second;
+		const auto& inp = data[choice].first;
+		const auto& exp = data[choice].second;
 
-		auto out = seq.feedForward(inp);
+		const auto& out = seq.feedForward(inp);
 		auto err = seq.feedBackward(exp);
 
-		std::cout << "Iteration (" << i << "), Error = " << err << std::endl;
+		std::cout << "Iteration (" << i + 1 << "), Error = " << err << std::endl;
 	}
 
 	int points = 50;
@@ -140,7 +141,7 @@ static void RegressionExample()
 	{
 		double x = (double)i / (double)points;
 
-		mocr::DTensor inp = {x};
+		mocr::DTensor inp = { x };
 		mocr::DTensor out = seq.feedForward(inp);
 
 		if (i < points)
@@ -157,26 +158,24 @@ static void MnistExample()
 	int numTrainImages;
 	int trainImageSize;
 	int numTrainLabels;
-	
-	unsigned char **trainImages = read_mnist_images("../res/train-images.idx3-ubyte", numTrainImages, trainImageSize);
-	unsigned char  *trainLabels = read_mnist_labels("../res/train-labels.idx1-ubyte", numTrainLabels);
+
+	unsigned char** trainImages = read_mnist_images("../res/train-images.idx3-ubyte", numTrainImages, trainImageSize);
+	unsigned char* trainLabels = read_mnist_labels("../res/train-labels.idx1-ubyte", numTrainLabels);
 
 	int imageWidth = static_cast<int>(std::sqrt(trainImageSize));
 
-	std::vector<std::pair<mocr::DTensor, mocr::DTensor>> trainData;
+	std::pair<mocr::DTensor, mocr::DTensor> trainData;
+	trainData.first.resize(numTrainImages, trainImageSize, 1);
+	trainData.second.resize(numTrainImages, 10, 1);
 
-	for (int i = 0; i < numTrainImages; i++)
+	for (int c = 0; c < numTrainImages; c++)
 	{
-		mocr::DTensor imageTensor(1, imageWidth, imageWidth);
-		for (int j = 0; j < trainImageSize; j++)
+		for (int i = 0; i < trainImageSize; i++)
 		{
-			imageTensor[j] = trainImages[i][j];
+			trainData.first(c, i, 0) = trainImages[c][i];
 		}
 
-		mocr::DTensor labelTensor(1, 10, 1);
-		labelTensor(0, static_cast<int>(trainLabels[i]), 0) = 1.0;
-
-		trainData.push_back({mocr::DTensor::resize(imageTensor, 1, trainImageSize, 1), labelTensor});
+		trainData.second(c, static_cast<int>(trainLabels[c]), 0) = 1.0;
 	}
 
 	for (int i = 0; i < numTrainImages; i++)
@@ -186,50 +185,52 @@ static void MnistExample()
 	delete[] trainImages;
 	delete[] trainLabels;
 
-	mocr::Sequential seq(1, trainImageSize, 1, mocr::LossFunc::MSE, 0.01);
-	seq.addFullyConnectedLayer(512, mocr::ActivationFunc::TANH);
-	seq.addFullyConnectedLayer(256, mocr::ActivationFunc::TANH);
-	seq.addFullyConnectedLayer(64, mocr::ActivationFunc::TANH);
+	mocr::Sequential seq(1, trainImageSize, 1, mocr::LossFunc::MSE, 0.3);
+	// seq.addFullyConnectedLayer(784, mocr::ActivationFunc::SIGMOID);
+	seq.addFullyConnectedLayer(400, mocr::ActivationFunc::SIGMOID);
+	seq.addFullyConnectedLayer(150, mocr::ActivationFunc::SIGMOID);
 	seq.addFullyConnectedLayer(10, mocr::ActivationFunc::SIGMOID);
 
-	int numIterations = 10000;
+	int numIterations = 50000;
 
 	for (int i = 0; i < numIterations; i++)
 	{
-		int choice = rand() % trainData.size();
+		int choice = rand() % trainData.first.channels();
 
-		auto inp = trainData[choice].first;
-		auto exp = trainData[choice].second;
+		const auto& inp = trainData.first(choice);
+		const auto& exp = trainData.second(choice);
 
-		auto out = seq.feedForward(inp);
+		const auto& out = seq.feedForward(inp);
 		auto err = seq.feedBackward(exp);
 
-		std::cout << "Iteration (" << i << "), Error = " << err << std::endl;
+		std::cout << '\r' << "Iteration (" << i + 1 << "), Error = " << err;
 	}
 
-	trainData.clear();
+	std::cout << std::endl;
 
 	int numTestImages;
 	int testImageSize;
 	int numTestLabels;
 
-	unsigned char **testImages = read_mnist_images("../res/t10k-images.idx3-ubyte", numTestImages, testImageSize);
-	unsigned char  *testLabels = read_mnist_labels("../res/t10k-labels.idx1-ubyte", numTrainLabels);
+	unsigned char** testImages = read_mnist_images("../res/t10k-images.idx3-ubyte", numTestImages, testImageSize);
+	unsigned char* testLabels = read_mnist_labels("../res/t10k-labels.idx1-ubyte", numTrainLabels);
 
 	std::vector<std::pair<mocr::DTensor, mocr::DTensor>> testData;
+	testData.reserve(numTestImages);
 
 	for (int i = 0; i < numTestImages; i++)
 	{
 		mocr::DTensor imageTensor(1, imageWidth, imageWidth);
-		for (int j = 0; j < trainImageSize; j++)
+		for (int j = 0; j < testImageSize; j++)
 		{
 			imageTensor[j] = testImages[i][j];
 		}
+		imageTensor.resize(1, testImageSize, 1);
 
 		mocr::DTensor labelTensor(1, 10, 1);
 		labelTensor(0, static_cast<int>(testLabels[i]), 0) = 1.0;
 
-		testData.push_back({mocr::DTensor::resize(imageTensor, 1, trainImageSize, 1), labelTensor});
+		testData.push_back({ std::move(imageTensor), std::move(labelTensor) });
 	}
 
 	for (int i = 0; i < numTestImages; i++)
@@ -239,17 +240,20 @@ static void MnistExample()
 	delete[] testImages;
 	delete[] testLabels;
 
-	int numTests = 100;
+	std::cout << "Testing..." << std::endl;
+
+	int numTests = numTestImages;
+	int numCorrect = 0;
 
 	for (int i = 0; i <= numTests; i++)
 	{
 		int choice = rand() % testData.size();
 
-		auto inp = testData[choice].first;
-		auto exp = testData[choice].second;
-		auto out = seq.feedForward(inp);
+		const auto& inp = testData[choice].first;
+		const auto& exp = testData[choice].second;
+		const auto& out = seq.feedForward(inp);
 
-		double currentMax = -INFINITY;
+		double currentMax = -std::numeric_limits<double>::infinity();
 		int expected = 0;
 
 		for (int j = 0; j < exp.size(); j++)
@@ -261,7 +265,7 @@ static void MnistExample()
 			}
 		}
 
-		currentMax = -INFINITY;
+		currentMax = -std::numeric_limits<double>::infinity();
 		int predicted = 0;
 
 		for (int j = 0; j < out.size(); j++)
@@ -273,12 +277,10 @@ static void MnistExample()
 			}
 		}
 
-		// std::cout << "Input = " << std::endl << mocr::DTensor::resize(inp, 1, imageWidth, imageWidth).str() << std::endl;
-		
-		std::cout << "Testing " << expected << ", Got " << predicted << "... " 
-		          << ((expected == predicted) ? "Correct" : "Incorrect")
-		          << std::endl;
+		numCorrect += (expected == predicted);
 	}
+
+	std::cout << numCorrect << "/" << numTests << "Correct Guesses, thats " << ((double)numCorrect /  (double)numTests) * 100. << "%" << std::endl;
 
 	testData.clear();
 }
