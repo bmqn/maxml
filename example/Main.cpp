@@ -4,6 +4,7 @@
 #include "MnistLoader.h"
 
 #include <iostream>
+#include <cmath>
 #include <limits>
 
 static void RegressionExample()
