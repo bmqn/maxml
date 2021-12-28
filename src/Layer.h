@@ -1,10 +1,10 @@
 #ifndef H_LAYER_H
 #define H_LAYER_H
 
-#include "mocr/Tensor.h"
-#include "mocr/Sequential.h"
+#include "maxml/Tensor.h"
+#include "maxml/Sequential.h"
 
-namespace mocr
+namespace maxml
 {
 	struct Layer
 	{

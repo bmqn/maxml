@@ -1,12 +1,12 @@
-#include "mocr/Sequential.h"
-#include "mocr/Assert.h"
+#include "maxml/Sequential.h"
+#include "maxml/Assert.h"
 
 #include "Layer.h"
 
 #include <random>
 #include <limits>
 
-namespace mocr
+namespace maxml
 {
     Sequential::Sequential(const SequentialDesc& sequentialDesc)
     {

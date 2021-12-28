@@ -3,15 +3,15 @@ cmake_minimum_required(VERSION 3.1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-project(MOCR)
+project(maxml)
 set(ROOT_DIR        ${CMAKE_CURRENT_SOURCE_DIR})
 
 
 # --- Sources ---
 set(INC_SRC_FILES
-    "${ROOT_DIR}/include/mocr/Assert.h"
-    "${ROOT_DIR}/include/mocr/Tensor.h"
-    "${ROOT_DIR}/include/mocr/Sequential.h"
+    "${ROOT_DIR}/include/maxml/Assert.h"
+    "${ROOT_DIR}/include/maxml/Tensor.h"
+    "${ROOT_DIR}/include/maxml/Sequential.h"
 )
 
 set(SRC_FILES
@@ -26,18 +26,18 @@ source_group("src" FILES ${SRC_FILES})
 
 # --- Library ---
 add_library(
-    mocr STATIC
+    maxml STATIC
     ${INC_SRC_FILES}
     ${SRC_FILES}
 )
 
 target_include_directories(
-    mocr PUBLIC
+    maxml PUBLIC
     "${ROOT_DIR}/include"
 )
 
 target_include_directories(
-    mocr PRIVATE
+    maxml PRIVATE
     "${ROOT_DIR}/src"
 )
 

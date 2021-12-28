@@ -1,5 +1,5 @@
-#include "mocr/Sequential.h"
-#include "mocr/Tensor.h"
+#include "maxml/Sequential.h"
+#include "maxml/Tensor.h"
 
 #include "MnistLoader.h"
 
@@ -40,36 +40,36 @@ static void RegressionExample()
 		}
 	}
 
-	std::vector<std::pair<mocr::DTensor, mocr::DTensor>> data;
+	std::vector<std::pair<maxml::DTensor, maxml::DTensor>> data;
 
 	for (double x = lower; x <= upper; x += step)
 	{
 		data.push_back({ {x}, {func(x) / supremum} });
 	}
 
-	mocr::InputLayerDesc inpLayerDesc;
+	maxml::InputLayerDesc inpLayerDesc;
 	inpLayerDesc.Channels = 1;
 	inpLayerDesc.Rows = 1;
 	inpLayerDesc.Cols = 1;
 
-	mocr::FullyConnectedLayerDesc fc1LayerDesc;
+	maxml::FullyConnectedLayerDesc fc1LayerDesc;
 	fc1LayerDesc.NumOutputs = 16;
-	fc1LayerDesc.ActivFunc = mocr::ActivationFunc::Tanh;
+	fc1LayerDesc.ActivFunc = maxml::ActivationFunc::Tanh;
 
-	mocr::FullyConnectedLayerDesc fc2LayerDesc;
+	maxml::FullyConnectedLayerDesc fc2LayerDesc;
 	fc2LayerDesc.NumOutputs = 8;
-	fc2LayerDesc.ActivFunc = mocr::ActivationFunc::Tanh;
+	fc2LayerDesc.ActivFunc = maxml::ActivationFunc::Tanh;
 
-	mocr::FullyConnectedLayerDesc fc3LayerDesc;
+	maxml::FullyConnectedLayerDesc fc3LayerDesc;
 	fc3LayerDesc.NumOutputs = 1;
-	fc3LayerDesc.ActivFunc = mocr::ActivationFunc::None;
+	fc3LayerDesc.ActivFunc = maxml::ActivationFunc::None;
 
-	mocr::SequentialDesc seqDesc;
-	seqDesc.ObjectiveFunc = mocr::LossFunc::MSE;
+	maxml::SequentialDesc seqDesc;
+	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
 	seqDesc.LearningRate = 0.1;
 	seqDesc.LayerDescs = { inpLayerDesc, fc1LayerDesc , fc2LayerDesc ,fc3LayerDesc };
 
-	mocr::Sequential seq(seqDesc);
+	maxml::Sequential seq(seqDesc);
 
 	{
 		int numIterations = 500000;
@@ -80,10 +80,10 @@ static void RegressionExample()
 		{
 			int choice = rand() % data.size();
 
-			const mocr::DTensor& inp = data[choice].first;
-			const mocr::DTensor& exp = data[choice].second;
+			const maxml::DTensor& inp = data[choice].first;
+			const maxml::DTensor& exp = data[choice].second;
 
-			const mocr::DTensor& out = seq.feedForward(inp);
+			const maxml::DTensor& out = seq.feedForward(inp);
 			double err = seq.feedBackward(exp);
 
 			std::cout << '\r' << "Iteration (" << i + 1 << "), Error = " << std::fixed << std::setprecision(10) << err;
@@ -102,8 +102,8 @@ static void RegressionExample()
 		{
 			double x = lower + (upper - lower) * ((double)i / (double)points);
 
-			mocr::DTensor inp = { x };
-			mocr::DTensor out = seq.feedForward(inp);
+			maxml::DTensor inp = { x };
+			maxml::DTensor out = seq.feedForward(inp);
 
 			if (i < points)
 				ss << "(" << inp[0] << ", " << out[0] * supremum << "),";
@@ -117,29 +117,29 @@ static void RegressionExample()
 
 static void MnistExample()
 {
-	mocr::InputLayerDesc inpLayerDesc;
+	maxml::InputLayerDesc inpLayerDesc;
 	inpLayerDesc.Channels = 1;
 	inpLayerDesc.Rows = 784;
 	inpLayerDesc.Cols = 1;
 
-	mocr::FullyConnectedLayerDesc fc1LayerDesc;
+	maxml::FullyConnectedLayerDesc fc1LayerDesc;
 	fc1LayerDesc.NumOutputs = 256;
-	fc1LayerDesc.ActivFunc = mocr::ActivationFunc::Sigmoid;
+	fc1LayerDesc.ActivFunc = maxml::ActivationFunc::Sigmoid;
 
-	mocr::FullyConnectedLayerDesc fc2LayerDesc;
+	maxml::FullyConnectedLayerDesc fc2LayerDesc;
 	fc2LayerDesc.NumOutputs = 64;
-	fc2LayerDesc.ActivFunc = mocr::ActivationFunc::Sigmoid;
+	fc2LayerDesc.ActivFunc = maxml::ActivationFunc::Sigmoid;
 
-	mocr::FullyConnectedLayerDesc fc3LayerDesc;
+	maxml::FullyConnectedLayerDesc fc3LayerDesc;
 	fc3LayerDesc.NumOutputs = 10;
-	fc3LayerDesc.ActivFunc = mocr::ActivationFunc::Sigmoid;
+	fc3LayerDesc.ActivFunc = maxml::ActivationFunc::Sigmoid;
 
-	mocr::SequentialDesc seqDesc;
-	seqDesc.ObjectiveFunc = mocr::LossFunc::MSE;
+	maxml::SequentialDesc seqDesc;
+	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
 	seqDesc.LearningRate = 0.1;
 	seqDesc.LayerDescs = { inpLayerDesc, fc1LayerDesc , fc2LayerDesc, fc3LayerDesc };
 
-	mocr::Sequential seq(seqDesc);
+	maxml::Sequential seq(seqDesc);
 
 	{
 		int numTrainImages;
@@ -151,7 +151,7 @@ static void MnistExample()
 
 		int imageWidth = static_cast<int>(std::sqrt(trainImageSize));
 
-		std::pair<mocr::DTensor, mocr::DTensor> trainData;
+		std::pair<maxml::DTensor, maxml::DTensor> trainData;
 		trainData.first.resize(numTrainImages, trainImageSize, 1);
 		trainData.second.resize(numTrainImages, 10, 1);
 
@@ -180,10 +180,10 @@ static void MnistExample()
 		{
 			int choice = rand() % numTrainImages;
 
-			const mocr::DTensor& inp = trainData.first(choice);
-			const mocr::DTensor& exp = trainData.second(choice);
+			const maxml::DTensor& inp = trainData.first(choice);
+			const maxml::DTensor& exp = trainData.second(choice);
 
-			const mocr::DTensor& out = seq.feedForward(inp);
+			const maxml::DTensor& out = seq.feedForward(inp);
 			double err = seq.feedBackward(exp);
 
 			std::cout << '\r' << "Iteration (" << i + 1 << "), Error = " << std::fixed << std::setprecision(10) << err;
@@ -202,7 +202,7 @@ static void MnistExample()
 
 		int imageWidth = static_cast<int>(std::sqrt(testImageSize));
 
-		std::pair<mocr::DTensor, mocr::DTensor> trainData;
+		std::pair<maxml::DTensor, maxml::DTensor> trainData;
 		trainData.first.resize(numTestImages, testImageSize, 1);
 		trainData.second.resize(numTestImages, 10, 1);
 
@@ -232,9 +232,9 @@ static void MnistExample()
 		{
 			int choice = rand() % numTestImages;
 
-			const mocr::DTensor& inp = trainData.first(choice);
-			const mocr::DTensor& exp = trainData.second(choice);
-			const mocr::DTensor& out = seq.feedForward(inp);
+			const maxml::DTensor& inp = trainData.first(choice);
+			const maxml::DTensor& exp = trainData.second(choice);
+			const maxml::DTensor& out = seq.feedForward(inp);
 
 			double currentMax = -std::numeric_limits<double>::infinity();
 			int expected = 0;

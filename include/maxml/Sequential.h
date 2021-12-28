@@ -1,13 +1,13 @@
 #ifndef H_SEQUENTIAL_H
 #define H_SEQUENTIAL_H
 
-#include "mocr/Tensor.h"
+#include "maxml/Tensor.h"
 
 #include <vector>
 #include <memory>
 #include <variant>
 
-namespace mocr
+namespace maxml
 {
 	/*
 	* TODO: Describe a network with a json or xml file.

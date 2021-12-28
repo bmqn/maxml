@@ -1,9 +1,9 @@
 #include "Layer.h"
 #include "Activations.h"
 
-#include "mocr/Tensor.h"
+#include "maxml/Tensor.h"
 
-namespace mocr
+namespace maxml
 {
 	void FullyConLayer::forward(const DTensor& input, DTensor& output)
 	{

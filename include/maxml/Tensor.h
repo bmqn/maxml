@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mocr/Assert.h"
+#include "maxml/Assert.h"
 
 #include <string>
 #include <sstream>
@@ -9,7 +9,7 @@
 #include <iostream>
 #include <functional>
 
-namespace mocr
+namespace maxml
 {
 	template<typename T>
 	class Tensor;

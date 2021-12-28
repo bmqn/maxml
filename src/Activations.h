@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-namespace mocr
+namespace maxml
 {
     // TODO: Optimise these functions.
 
