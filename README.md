@@ -9,7 +9,7 @@ I am particularly interested in image processing with convolutional neural netwo
 
 Say we want to fit a sequential neural network model to the following function
 
-![Function](https://latex.codecogs.com/svg.image?\bg_white&space;y=2^{\sin(5x^3)}-x^2)
+![Function](https://latex.codecogs.com/png.image?\dpi{300}&space;\bg_white&space;y=2^{\sin(5x^3)}-x^2)
 
 First we create the description of the desired sequential network to create a model
 
@@ -44,7 +44,7 @@ Next we train the model
 ```C++
 for (int i = 0; i < numIterations; i++)
 {
-  int choice = rand() % data.size();
+  	int choice = rand() % data.size();
 
 	const mocr::DTensor& inp = data[choice].first;
 	const mocr::DTensor& exp = data[choice].second;
