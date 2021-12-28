@@ -1,6 +1,8 @@
-# About
+# Maxml
 
 Machine learning library written in pure C++.
+
+# About
 
 I decided to write this library as a way to exmplore machine learning and improve my C++ knowledge + skills.
 I am particularly interested in image processing with convolutional neural networks (CNNs).
