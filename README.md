@@ -9,7 +9,7 @@ I am particularly interested in image processing with convolutional neural netwo
 
 Say we want to fit a sequential neural network model to the following function
 
-![Function](https://latex.codecogs.com/gif.latex?y=2^{\sin(5x^3)}-x^2)
+![Function](https://latex.codecogs.com/svg.latex?y=2^{\sin(5x^3)}-x^2)
 
 First we create the description of the desired sequential network to create a model
 
