@@ -9,6 +9,7 @@ set(ROOT_DIR        ${CMAKE_CURRENT_SOURCE_DIR})
 
 # --- Sources ---
 set(INC_SRC_FILES
+    "${ROOT_DIR}/include/mocr/Assert.h"
     "${ROOT_DIR}/include/mocr/Tensor.h"
     "${ROOT_DIR}/include/mocr/Sequential.h"
 )

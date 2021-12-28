@@ -29,13 +29,13 @@ namespace mocr
 	{
 		switch (Activation)
 		{
-		case ActivationFunc::SIGMOID:
+		case ActivationFunc::Sigmoid:
 			DTensor::map(input, [](double x) { return sig(x); }, output);
 			break;
-		case ActivationFunc::TANH:
+		case ActivationFunc::Tanh:
 			DTensor::map(input, [](double x) { return tanh(x); }, output);
 			break;
-		case ActivationFunc::RELU:
+		case ActivationFunc::ReLU:
 			DTensor::map(input, [](double x) { return relu(x); }, output);
 			break;
 		}
@@ -45,13 +45,13 @@ namespace mocr
 	{
 		switch (Activation)
 		{
-		case ActivationFunc::SIGMOID:
+		case ActivationFunc::Sigmoid:
 			DTensor::zip(output, outputDelta, [](double x, double y) { return (x * (1.0 - x)) * y; }, inputDelta);
 			break;
-		case ActivationFunc::TANH:
+		case ActivationFunc::Tanh:
 			DTensor::zip(input, outputDelta, [](double x, double y) { return (tanhPrime(x)) * y; }, inputDelta);
 			break;
-		case ActivationFunc::RELU:
+		case ActivationFunc::ReLU:
 			DTensor::zip(input, outputDelta, [](double x, double y) { return (reluPrime(x)) * y; }, inputDelta);
 			break;
 		}

@@ -1,5 +1,6 @@
-#ifndef H_TENSOR_H
-#define H_TENSOR_H
+#pragma once
+
+#include "mocr/Assert.h"
 
 #include <string>
 #include <sstream>
@@ -7,8 +8,6 @@
 #include <cstring>
 #include <iostream>
 #include <functional>
-
-#include <assert.h>
 
 namespace mocr
 {
@@ -32,33 +31,52 @@ namespace mocr
 
 		// TODO: Is this a good way to handle ownership ?
 		//       Perhaps we should have a TensorView instead...
-		bool m_Owned = false;
+		bool m_Owned;
 	
 	private:
-		Tensor(int c, int w, int h, T* data) : m_Channels(c), m_Rows(w), m_Cols(h), m_Size(c* w* h), m_Data(data)
+		Tensor(int chnls, int rows, int cols, T* data)
+			: m_Channels(chnls)
+			, m_Rows(rows)
+			, m_Cols(cols)
+			, m_Size(chnls * rows * cols)
+			, m_Data(data)
+			, m_Owned(false)
 		{
-			m_Owned = false;
 		}
 
 	public:
-		Tensor() : m_Channels(0), m_Rows(0), m_Cols(0), m_Size(0), m_Data(nullptr) {}
+		Tensor()
+			: m_Channels(0)
+			, m_Rows(0)
+			, m_Cols(0)
+			, m_Size(0)
+			, m_Data(nullptr)
+			, m_Owned(false)
+		{}
 
-		Tensor(int c, int w, int h) : m_Channels(c), m_Rows(w), m_Cols(h), m_Size(c* w* h), m_Data(nullptr)
+		Tensor(int chnls, int rows, int cols)
+			: m_Channels(chnls)
+			, m_Rows(rows)
+			, m_Cols(cols)
+			, m_Size(chnls * rows * cols)
+			, m_Data(nullptr)
 		{
-			assert(m_Size > 0);
-			m_Data = new T[m_Size];
-			std::fill(m_Data, m_Data + m_Size, T{ 0 });
-			
+			MOCR_ASSERT(m_Size > 0);
+
+			m_Data  = new T[m_Size];
 			m_Owned = true;
+			
+			std::fill(m_Data, m_Data + m_Size, T{ 0 });
 		}
 
 		Tensor(std::initializer_list<T> data) : m_Channels(1), m_Rows(static_cast<int>(data.size())), m_Cols(1), m_Size(static_cast<int>(data.size()))
 		{
-			assert(m_Size > 0);
+			MOCR_ASSERT(m_Size > 0);
+
 			m_Data = new T[m_Size];
-			std::copy(data.begin(), data.end(), m_Data);
-			
 			m_Owned = true;
+			
+			std::copy(data.begin(), data.end(), m_Data);
 		}
 
 		Tensor(std::initializer_list<std::initializer_list<T>> data)
@@ -66,31 +84,40 @@ namespace mocr
 			m_Channels = 1;
 			m_Rows = data.size();
 			m_Cols = 0;
+			
 			if (m_Rows > 0)
+			{
 				m_Cols = data.begin()->size();
+			}
 
 			m_Size = m_Rows * m_Cols;
-			assert(m_Size > 0);
+			
+			MOCR_ASSERT(m_Size > 0);
+			
 			m_Data = new T[m_Size];
+			m_Owned = true;
+
 			auto i = 0;
 			for (auto& row : data)
 			{
 				std::copy(row.begin(), row.end(), m_Data + m_Cols * i);
 				i++;
 			}
-
-			m_Owned = true;
 		}
 
-		Tensor(const Tensor<T>& tensor) : m_Channels(tensor.m_Channels), m_Rows(tensor.m_Rows), m_Cols(tensor.m_Cols), m_Size(tensor.m_Size), m_Data(nullptr)
+		Tensor(const Tensor<T>& tensor)
+			: m_Channels(tensor.m_Channels)
+			, m_Rows(tensor.m_Rows)
+			, m_Cols(tensor.m_Cols)
+			, m_Size(tensor.m_Size)
+			, m_Data(nullptr)
 		{
 			if (tensor.m_Owned)
 			{
-				assert(m_Size > 0);
 				m_Data = new T[m_Size];
-				std::copy(tensor.m_Data, tensor.m_Data + m_Size, m_Data);
-
 				m_Owned = true;
+
+				std::copy(tensor.m_Data, tensor.m_Data + m_Size, m_Data);
 			}
 			else
 			{
@@ -99,17 +126,23 @@ namespace mocr
 			}
 		}
 
-		Tensor(Tensor<T>&& tensor) : m_Channels(tensor.m_Channels), m_Rows(tensor.m_Rows), m_Cols(tensor.m_Cols), m_Size(tensor.m_Size), m_Data(tensor.m_Data)
+		Tensor(Tensor<T>&& tensor) noexcept
+			: m_Channels(tensor.m_Channels)
+			, m_Rows(tensor.m_Rows)
+			, m_Cols(tensor.m_Cols)
+			, m_Size(tensor.m_Size)
+			, m_Data(tensor.m_Data)
+			, m_Owned(tensor.m_Owned)
 		{
+			// TODO: If m_Owned is false then we can move without having to
+			//       'zero' out the other tensor ?
+
 			tensor.m_Channels = 0;
 			tensor.m_Rows = 0;
 			tensor.m_Cols = 0;
 			tensor.m_Size = 0;
 			tensor.m_Data = nullptr;
-
-			// TODO: If m_Owned is false then we can move without having to
-			//       'zero' out the other tensor.
-			m_Owned = tensor.m_Owned;
+			tensor.m_Owned = false;
 		}
 
 		~Tensor()
@@ -123,12 +156,19 @@ namespace mocr
 		Tensor<T>& operator=(const Tensor<T>& tensor)
 		{
 			if (this == &tensor)
+			{
 				return *this;
+			}
 
 			if (m_Size != tensor.m_Size)
 			{
-				delete[] m_Data;
+				if (m_Owned)
+				{
+					delete[] m_Data;
+				}
+
 				m_Data = new T[tensor.m_Size];
+				m_Owned = true;
 			}
 
 			m_Channels = tensor.m_Channels;
@@ -144,65 +184,70 @@ namespace mocr
 		Tensor<T>& operator=(Tensor<T>&& tensor)
 		{
 			if (this == &tensor)
+			{
 				return *this;
+			}
 
-			if (m_Data)
+			if (m_Data && m_Owned)
+			{
 				delete[] m_Data;
+			}
 
 			m_Channels = tensor.m_Channels;
 			m_Rows = tensor.m_Rows;
 			m_Cols = tensor.m_Cols;
 			m_Size = tensor.m_Size;
 			m_Data = tensor.m_Data;
+			m_Owned = tensor.m_Owned;
 
 			tensor.m_Channels = 0;
 			tensor.m_Rows = 0;
 			tensor.m_Cols = 0;
 			tensor.m_Size = 0;
 			tensor.m_Data = nullptr;
+			tensor.m_Owned = false;
 
 			return *this;
 		}
 
-		Tensor<T> operator()(int c) const
+		Tensor<T> operator()(int chnl) const
 		{
-			assert(c >= 0 && c < m_Channels);
+			MOCR_ASSERT(chnl >= 0 && chnl < m_Channels);
 
-			auto index = c * (m_Rows * m_Cols);
-
+			auto index = chnl * (m_Rows * m_Cols);
 			return Tensor<T>(1, m_Rows, m_Cols, &m_Data[index]);
 		}
 
-		T& operator()(int c, int w, int h)
+		T& operator()(int chnl, int row, int col)
 		{
-			assert(c >= 0 && c < m_Channels);
-			assert(w >= 0 && w < m_Rows);
-			assert(h >= 0 && h < m_Cols);
+			MOCR_ASSERT(chnl >= 0 && chnl < m_Channels
+				&& row >= 0 && row < m_Rows
+				&& col >= 0 && col < m_Cols);
 
-			auto index = c * (m_Rows * m_Cols) + w * (m_Cols)+h;
+			auto index = chnl * (m_Rows * m_Cols) + row * (m_Cols) + col;
 			return m_Data[index];
 		}
 
-		const T& operator()(int c, int w, int h) const
+		const T& operator()(int chnl, int row, int col) const
 		{
-			assert(c >= 0 && c < m_Channels);
-			assert(w >= 0 && w < m_Rows);
-			assert(h >= 0 && h < m_Cols);
+			MOCR_ASSERT(chnl >= 0 && chnl < m_Channels
+				&& row >= 0 && row < m_Rows
+				&& col >= 0 && col < m_Cols);
 
-			auto index = c * (m_Rows * m_Cols) + w * (m_Cols)+h;
+			auto index = chnl * (m_Rows * m_Cols) + row * (m_Cols)+col;
 			return m_Data[index];
 		}
 
 		T& operator[](int index)
 		{
-			assert(index >= 0 && index < m_Size);
+			MOCR_ASSERT(index >= 0 && index < m_Size);
 
 			return m_Data[index];
 		}
 
 		const T& operator[](int index) const
 		{
-			assert(index >= 0 && index < m_Size);
+			MOCR_ASSERT(index >= 0 && index < m_Size);
 
 			return m_Data[index];
 		}
@@ -230,28 +275,33 @@ namespace mocr
 		void fill(T val)
 		{
 			for (auto i = 0; i < m_Size; i++)
+			{
 				m_Data[i] = val;
+			}
 		}
 
-		void fill(int c, Tensor<T>& val)
+		void fill(int chnl, Tensor<T>& val)
 		{
-			assert(c >= 0
-				&& c < m_Channels
+			MOCR_ASSERT(chnl >= 0 && chnl < m_Channels
 				&& val.m_Channels == m_Channels
 				&& val.m_Rows == m_Rows
-				&& val.m_Cols == val.m_Cols
+				&& val.m_Cols == m_Cols
 			);
 
 			for (auto i = 0; i < m_Rows; i++)
+			{
 				for (auto j = 0; j < m_Cols; j++)
-					this->operator()(c, i, j) = val(c, i, j);
+				{
+					this->operator()(chnl, i, j) = val(chnl, i, j);
+				}
+			}
 		}
 
 		void resize(int c, int w, int h)
 		{
 			int newSize = c * w * h;
 
-			assert(newSize > 0);
+			MOCR_ASSERT(newSize > 0);
 
 			if (newSize == m_Size)
 			{
@@ -266,7 +316,13 @@ namespace mocr
 				m_Cols = h;
 				m_Size = newSize;
 
+				if (m_Owned)
+				{
+					delete[] m_Data;
+				}
+
 				m_Data = new T[m_Size];
+				m_Owned = true;
 
 				std::fill(m_Data, m_Data + m_Size, T{ 0 });
 			}
@@ -336,7 +392,7 @@ namespace mocr
 
 		static Tensor<T> add(const Tensor<T>& a, const Tensor<T>& b)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Rows == b.m_Rows
 				&& a.m_Cols == b.m_Cols
 			);
@@ -355,7 +411,7 @@ namespace mocr
 
 		static void add(const Tensor<T>& a, const Tensor<T>& b, Tensor<T>& y)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Rows == b.m_Rows
 				&& a.m_Cols == b.m_Cols
 				&& y.m_Channels == a.m_Channels
@@ -373,7 +429,7 @@ namespace mocr
 
 		static Tensor<T> sub(const Tensor<T>& a, const Tensor<T>& b)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Rows == b.m_Rows
 				&& a.m_Cols == b.m_Cols
 			);
@@ -392,7 +448,7 @@ namespace mocr
 
 		static void sub(const Tensor<T>& a, const Tensor<T>& b, Tensor<T>& y)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Rows == b.m_Rows
 				&& a.m_Cols == b.m_Cols
 				&& y.m_Channels == a.m_Channels
@@ -422,9 +478,26 @@ namespace mocr
 			return y;
 		}
 
+		static Tensor<T> mult(const Tensor<T>& a, T s, Tensor<T>& y)
+		{
+			MOCR_ASSERT(y.m_Channels == a.m_Channels
+				&& y.m_Rows == a.m_Rows
+				&& y.m_Cols == a.m_Cols
+			);
+
+			for (auto c = 0; c < y.m_Channels; c++)
+				for (auto i = 0; i < y.m_Rows; i++)
+					for (auto j = 0; j < y.m_Cols; j++)
+					{
+						y(c, i, j) = a(c, i, j) * s;
+					}
+
+			return y;
+		}
+
 		static Tensor<T> mult(const Tensor<T>& a, const Tensor<T>& b)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Rows == b.m_Rows
 				&& a.m_Cols == b.m_Cols
 			);
@@ -443,7 +516,7 @@ namespace mocr
 
 		static void mult(const Tensor<T>& a, const Tensor<T>& b, Tensor<T>& y)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Rows == b.m_Rows
 				&& a.m_Cols == b.m_Cols
 				&& y.m_Channels == a.m_Channels
@@ -461,7 +534,7 @@ namespace mocr
 
 		static Tensor<T> matmul(const Tensor<T>& a, const Tensor<T>& b)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Cols == b.m_Rows
 			);
 
@@ -485,11 +558,11 @@ namespace mocr
 		static void matmul(const Tensor<T>& a, const Tensor<T>& b, Tensor<T>& y, bool transposeA = false, bool transposeB = false)
 		{
 			// TODO: Handle case when both are true
-			assert(!(transposeA && transposeB));
+			MOCR_ASSERT(!(transposeA && transposeB));
 
 			if (transposeA)
 			{
-				assert(a.m_Channels == b.m_Channels
+				MOCR_ASSERT(a.m_Channels == b.m_Channels
 					&& a.m_Rows == b.m_Rows
 					&& y.m_Channels == a.m_Channels
 					&& y.m_Rows == a.m_Cols
@@ -512,7 +585,7 @@ namespace mocr
 			}
 			else if (transposeB)
 			{
-				assert(a.m_Channels == b.m_Channels
+				MOCR_ASSERT(a.m_Channels == b.m_Channels
 					&& a.m_Cols == b.m_Cols
 					&& y.m_Channels == a.m_Channels
 					&& y.m_Rows == a.m_Rows
@@ -535,7 +608,7 @@ namespace mocr
 			}
 			else
 			{
-				assert(a.m_Channels == b.m_Channels
+				MOCR_ASSERT(a.m_Channels == b.m_Channels
 					&& a.m_Cols == b.m_Rows
 					&& y.m_Channels == a.m_Channels
 					&& y.m_Rows == a.m_Rows
@@ -574,7 +647,7 @@ namespace mocr
 
 		static void transpose(const Tensor<T>& a, Tensor<T>& y)
 		{
-			assert(a.m_Channels == y.m_Channels
+			MOCR_ASSERT(a.m_Channels == y.m_Channels
 				&& a.m_Rows == y.m_Cols
 				&& a.m_Cols == y.m_Rows
 			);
@@ -625,7 +698,7 @@ namespace mocr
 
 		static void map(const Tensor<T>& a, std::function<T(T)> f, Tensor<T>& y)
 		{
-			assert(a.m_Size == y.m_Size);
+			MOCR_ASSERT(a.m_Size == y.m_Size);
 
 			for (auto i = 0; i < y.m_Size; i++)
 			{
@@ -635,7 +708,7 @@ namespace mocr
 
 		static void zip(const Tensor<T>& a, const Tensor<T>& b, std::function<T(T, T)> f, Tensor<T>& y)
 		{
-			assert(a.m_Channels == b.m_Channels
+			MOCR_ASSERT(a.m_Channels == b.m_Channels
 				&& a.m_Rows == b.m_Rows
 				&& a.m_Cols == b.m_Cols
 				&& y.m_Channels == a.m_Channels
@@ -653,7 +726,7 @@ namespace mocr
 
 		static void copy(const Tensor<T>& a, Tensor<T>& y)
 		{
-			assert(a.m_Size == y.m_Size);
+			MOCR_ASSERT(a.m_Size == y.m_Size);
 
 			for (auto i = 0; i < y.m_Size; i++)
 			{
@@ -662,5 +735,3 @@ namespace mocr
 		}
 	};
 }
-
-#endif
