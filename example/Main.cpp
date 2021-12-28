@@ -10,13 +10,14 @@
 static void RegressionExample()
 {
 	auto func = [](double x) -> double {
-		// y = 2x^3 - x
-		return 2 * x * x * x - x;
+		// y = 2^(sin(5x^3)) - x^2
+		return std::pow(2, std::sin(5 * x * x * x)) - x * x;
 	};
 
 	double step = 0.05;
 	double lower = -1.0;
 	double upper = 1.0;
+	
 	double supremum = -std::numeric_limits<double>::infinity();
 
 	for (double x = lower; x <= upper; x += step)
@@ -52,11 +53,11 @@ static void RegressionExample()
 	inpLayerDesc.Cols = 1;
 
 	mocr::FullyConnectedLayerDesc fc1LayerDesc;
-	fc1LayerDesc.NumOutputs = 32;
+	fc1LayerDesc.NumOutputs = 16;
 	fc1LayerDesc.ActivFunc = mocr::ActivationFunc::Tanh;
 
 	mocr::FullyConnectedLayerDesc fc2LayerDesc;
-	fc2LayerDesc.NumOutputs = 16;
+	fc2LayerDesc.NumOutputs = 8;
 	fc2LayerDesc.ActivFunc = mocr::ActivationFunc::Tanh;
 
 	mocr::FullyConnectedLayerDesc fc3LayerDesc;
@@ -65,13 +66,13 @@ static void RegressionExample()
 
 	mocr::SequentialDesc seqDesc;
 	seqDesc.ObjectiveFunc = mocr::LossFunc::MSE;
-	seqDesc.LearningRate = 0.01;
+	seqDesc.LearningRate = 0.1;
 	seqDesc.LayerDescs = { inpLayerDesc, fc1LayerDesc , fc2LayerDesc ,fc3LayerDesc };
 
 	mocr::Sequential seq(seqDesc);
 
 	{
-		int numIterations = 50000;
+		int numIterations = 500000;
 
 		std::cout << "Training for " << numIterations << " iterations..." << std::endl;
 

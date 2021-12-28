@@ -34,7 +34,9 @@ namespace mocr
 
     static double tanhPrime(double x)
     {
-        return 1.0 / (std::cosh(x) * std::cosh(x));
+        double coshx = std::cosh(x);
+
+        return 1.0 / (coshx * coshx);
     }
 }
 
