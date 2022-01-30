@@ -1,14 +1,21 @@
-#include "maxml/Sequential.h"
-#include "maxml/Tensor.h"
+#include "maxml/MmlSequential.h"
+#include "maxml/MmlTensor.h"
 
 #include "MnistLoader.h"
 
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <cmath>
 #include <limits>
 
 static void RegressionExample()
 {
+	/*auto func = [](double x) -> double {
+		// y = abs(x)^(2cos(3x)) - 1
+		return std::pow(std::abs(x), 2 * std::cos(3 * x)) - 1;
+	};*/
+
 	auto func = [](double x) -> double {
 		// y = 2^(sin(5x^3)) - x^2
 		return std::pow(2, std::sin(5 * x * x * x)) - x * x;
@@ -24,7 +31,7 @@ static void RegressionExample()
 	{
 		double y = func(x);
 
-		if (y <= 0)
+		if (y < 0)
 		{
 			if (-y > supremum)
 			{

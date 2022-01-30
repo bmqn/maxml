@@ -1,7 +1,7 @@
 #include "maxml/Sequential.h"
-#include "maxml/Assert.h"
 
 #include "Layer.h"
+#include "MmlLog.h"
 
 #include <random>
 #include <limits>
@@ -25,7 +25,7 @@ namespace maxml
             {
                 case LayerKind::Input:
                 {
-                    MOCR_ASSERT(it == sequentialDesc.LayerDescs.begin());
+                    MML_ASSERT(it == sequentialDesc.LayerDescs.begin());
 
                     InputLayerDesc inpLayerDesc = std::get<InputLayerDesc>(layerDesc);
 
@@ -37,7 +37,7 @@ namespace maxml
                 }
                 case LayerKind::FullyConnected:
                 {
-                    MOCR_ASSERT(it != sequentialDesc.LayerDescs.begin());
+                    MML_ASSERT(it != sequentialDesc.LayerDescs.begin());
 
                     FullyConnectedLayerDesc fcLayerDesc = std::get<FullyConnectedLayerDesc>(layerDesc);
 
@@ -100,7 +100,7 @@ namespace maxml
     {
         InputLayerDesc inputLayerDesc = std::get<InputLayerDesc>(m_SequentialDesc.LayerDescs.front());
 
-        MOCR_ASSERT(input.channels() == inputLayerDesc.Channels
+        MML_ASSERT(input.channels() == inputLayerDesc.Channels
             && input.rows() == inputLayerDesc.Rows
             && input.cols() == inputLayerDesc.Cols
         );
@@ -157,56 +157,56 @@ namespace maxml
 
     const DTensor& Sequential::dataInputAt(std::size_t index) const
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Data[index].first);
     }
 
     const DTensor& Sequential::dataOutputAt(std::size_t index) const
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Data[index].second);
     }
 
     const DTensor& Sequential::deltaInputAt(std::size_t index) const
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Delta[index].first);
     }
 
     const DTensor& Sequential::deltaOutputAt(std::size_t index) const
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Delta[index].second);
     }
 
     DTensor& Sequential::dataInputAt(std::size_t index)
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Data[index].first);
     }
 
     DTensor& Sequential::dataOutputAt(std::size_t index)
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Data[index].second);
     }
 
     DTensor& Sequential::deltaInputAt(std::size_t index)
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Delta[index].first);
     }
 
     DTensor& Sequential::deltaOutputAt(std::size_t index)
     {
-        MOCR_ASSERT(index >= 0 && index < m_Layers.size());
+        MML_ASSERT(index >= 0 && index < m_Layers.size());
 
         return *(m_Delta[index].second);
     }

@@ -1,15 +1,14 @@
-#ifndef H_LAYER_H
-#define H_LAYER_H
+#pragma once
 
-#include "maxml/Tensor.h"
-#include "maxml/Sequential.h"
+#include "maxml/MmlTensor.h"
+#include "maxml/MmlSequential.h"
 
 namespace maxml
 {
 	struct Layer
 	{
 		Layer() = delete;
-		Layer(unsigned int channels , unsigned int rows, unsigned int cols)
+		Layer(size_t channels , size_t rows, size_t cols)
 			: Channels(channels), Rows(rows), Cols(cols)
 		{
 		}
@@ -21,7 +20,7 @@ namespace maxml
 
 		virtual void update(double learningRate) = 0;
 
-		unsigned int Channels, Rows, Cols;
+		size_t Channels, Rows, Cols;
 	};
 
 	struct FullyConLayer : public Layer
@@ -55,7 +54,7 @@ namespace maxml
 	struct ActvLayer : public Layer
 	{
 		ActvLayer() = delete;
-		ActvLayer(unsigned int channels, unsigned int rows, unsigned int cols, ActivationFunc activation)
+		ActvLayer(size_t channels, size_t rows, size_t cols, ActivationFunc activation)
 			: Layer(channels, rows, cols), Activation(activation)
 		{
 		}
@@ -68,5 +67,3 @@ namespace maxml
 		ActivationFunc Activation;
 	};
 }
-
-#endif

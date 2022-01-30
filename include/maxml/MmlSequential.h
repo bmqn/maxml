@@ -1,7 +1,6 @@
-#ifndef H_SEQUENTIAL_H
-#define H_SEQUENTIAL_H
+#pragma once
 
-#include "maxml/Tensor.h"
+#include "maxml/MmlTensor.h"
 
 #include <vector>
 #include <memory>
@@ -98,7 +97,7 @@ namespace maxml
 		double                   LearningRate = 0.1;
 		std::vector<VariantType> LayerDescs = {};
 
-		static LayerKind getLayerKind(std::size_t index)
+		static LayerKind getLayerKind(size_t index)
 		{
 			// TODO: Some kind of way to verify the order here..
 			//       maybe use macros in some way.
@@ -121,15 +120,15 @@ namespace maxml
 		double feedBackward(const DTensor& expected);
 
 	private:
-		const DTensor& dataInputAt(std::size_t index) const;
-		const DTensor& dataOutputAt(std::size_t index) const;
-		const DTensor& deltaInputAt(std::size_t index) const;
-		const DTensor& deltaOutputAt(std::size_t index) const;
+		const DTensor& dataInputAt(size_t index) const;
+		const DTensor& dataOutputAt(size_t index) const;
+		const DTensor& deltaInputAt(size_t index) const;
+		const DTensor& deltaOutputAt(size_t index) const;
 
-		DTensor& dataInputAt(std::size_t index);
-		DTensor& dataOutputAt(std::size_t index);
-		DTensor& deltaInputAt(std::size_t index);
-		DTensor& deltaOutputAt(std::size_t index);
+		DTensor& dataInputAt(size_t index);
+		DTensor& dataOutputAt(size_t index);
+		DTensor& deltaInputAt(size_t index);
+		DTensor& deltaOutputAt(size_t index);
 
 	private:
 		// Each layer has a pair of tensors for input and output, respectively
@@ -146,5 +145,3 @@ namespace maxml
 		SequentialDesc m_SequentialDesc;
 	};
 }
-
-#endif

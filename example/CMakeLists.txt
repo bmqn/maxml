@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.1.0)
 
 add_executable(
-    example
-    Main.cpp
+	example
+	"Main.cpp"
 )
 
 target_link_libraries(
-    example PUBLIC
-    maxml
+	example
+	PUBLIC maxml
 )
+
+source_group("Source"  FILES "Main.cpp")

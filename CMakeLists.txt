@@ -4,51 +4,40 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 project(maxml)
-set(ROOT_DIR        ${CMAKE_CURRENT_SOURCE_DIR})
+set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 
 # --- Sources ---
-set(INC_SRC_FILES
-    "${ROOT_DIR}/include/maxml/Assert.h"
-    "${ROOT_DIR}/include/maxml/Tensor.h"
-    "${ROOT_DIR}/include/maxml/Sequential.h"
+set(INC_FILES
+	"${ROOT_DIR}/include/maxml/MmlTensor.h"
+	"${ROOT_DIR}/include/maxml/MmlSequential.h"
 )
 
 set(SRC_FILES
-    "${ROOT_DIR}/src/Layer.h"
-    "${ROOT_DIR}/src/Layer.cpp"
-    "${ROOT_DIR}/src/Sequential.cpp"
-    "${ROOT_DIR}/src/Activations.h"
+	"${ROOT_DIR}/src/MmlConfig.h"
+	"${ROOT_DIR}/src/MmlLog.h"
+	"${ROOT_DIR}/src/MmlLayer.h"
+	"${ROOT_DIR}/src/MmlLayer.cpp"
+	"${ROOT_DIR}/src/MmlSequential.cpp"
+	"${ROOT_DIR}/src/MmlTensor.cpp"
+	"${ROOT_DIR}/src/MmlActivations.h"
 )
 
-source_group("include" FILES ${INC_SRC_FILES})
-source_group("src" FILES ${SRC_FILES})
+source_group("Include" FILES ${INC_FILES})
+source_group("Source"  FILES ${SRC_FILES})
 
 # --- Library ---
 add_library(
-    maxml STATIC
-    ${INC_SRC_FILES}
-    ${SRC_FILES}
+	maxml STATIC
+	${INC_FILES}
+	${SRC_FILES}
 )
 
 target_include_directories(
-    maxml PUBLIC
-    "${ROOT_DIR}/include"
+	maxml
+	PUBLIC  "${ROOT_DIR}/include"
+	PRIVATE "${ROOT_DIR}/src"
 )
 
-target_include_directories(
-    maxml PRIVATE
-    "${ROOT_DIR}/src"
-)
-
-# Sub projects
+# --- Sub Projects ---
 add_subdirectory(example)
-
-# Resources
-set(RES_FILES
-	"res/train-images.idx3-ubyte"
-	"res/train-labels.idx1-ubyte" 
-	"res/t10k-images.idx3-ubyte" 
-	"res/t10k-labels.idx1-ubyte" 
-)
-file(COPY ${RES_FILES} DESTINATION "res")

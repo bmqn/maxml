@@ -1,7 +1,7 @@
-#include "Layer.h"
-#include "Activations.h"
+#include "MmlLayer.h"
+#include "MmlActivations.h"
 
-#include "maxml/Tensor.h"
+#include "maxml/MmlTensor.h"
 
 namespace maxml
 {
