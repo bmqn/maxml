@@ -3,66 +3,92 @@
 #include "maxml/MmlTensor.h"
 #include "maxml/MmlSequential.h"
 
+#include "MmlLog.h"
+
+#include <memory>
+#include <cinttypes>
+
 namespace maxml
 {
 	struct Layer
 	{
-		Layer() = delete;
-		Layer(size_t channels , size_t rows, size_t cols)
-			: Channels(channels), Rows(rows), Cols(cols)
-		{
-		}
-
 		virtual ~Layer() {}
 
-		virtual void forward(const DTensor& input, DTensor& output) = 0;
-		virtual void backward(const DTensor& input, const DTensor& output, DTensor& inputDelta, const DTensor& outputDelta) = 0;
+		virtual void forward(const FTensor &input, FTensor &output) = 0;
+		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) = 0;
 
-		virtual void update(double learningRate) = 0;
-
-		size_t Channels, Rows, Cols;
+		virtual void update(float learningRate) = 0;
 	};
 
 	struct FullyConLayer : public Layer
 	{
 		FullyConLayer() = delete;
-		FullyConLayer(DTensor&& weights, DTensor&& biases)
-			: Layer(weights.channels(), weights.rows(), 1)
-			, DeltaWeights(weights.channels(), weights.rows(), weights.cols())
-			, DeltaBiases(weights.channels(), weights.rows(), 1)
-			, Weights(std::forward<DTensor>(weights))
-			, Biases(std::forward<DTensor>(biases))
-		{
-		}
+		FullyConLayer(FTensor &&weights, FTensor &&biases);
 
-		virtual void forward(const DTensor& input, DTensor& output) override;
-		virtual void backward(const DTensor& input, const DTensor& output, DTensor& inputDelta, const DTensor& outputDelta) override;
+		virtual void forward(const FTensor &input, FTensor &output) override;
+		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
 
-		virtual void update(double learningRate) override;
+		virtual void update(float learningRate) override;
 
-		DTensor DeltaWeights;
-		DTensor DeltaBiases;
+		FTensor DeltaWeights;
+		FTensor DeltaBiases;
 
-		DTensor Weights;
-		DTensor Biases;
+		FTensor Weights;
+		FTensor Biases;
 	};
 
-	struct ConvLayer
+	struct ConvLayer : public Layer
 	{
+		ConvLayer() = delete;
+		ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const FTensor &kernel);
+
+		virtual void forward(const FTensor &input, FTensor &output) override;
+		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+
+		virtual void update(float learningRate) override;
+
+		size_t KernelChannels;
+		size_t KernelRows;
+		size_t KernelCols;
+
+		FTensor KernelWindowed;
+		FTensor InputWindowed;
+
+		FTensor DeltaKernelWindowed;
+		FTensor DeltaInputWindowed;
+	};
+
+	struct MaxPoolLayer : public Layer
+	{
+		MaxPoolLayer() = delete;
+		MaxPoolLayer(size_t tileWidth, size_t tileHeight);
+
+		virtual void forward(const FTensor &input, FTensor &output) override;
+		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+
+		virtual void update(float learningRate) override{};
+
+		size_t TileWidth;
+		size_t TileHeight;
+	};
+
+	struct FlattenLayer : public Layer
+	{
+		virtual void forward(const FTensor &input, FTensor &output) override;
+		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+
+		virtual void update(float learningRate) override{};
 	};
 
 	struct ActvLayer : public Layer
 	{
 		ActvLayer() = delete;
-		ActvLayer(size_t channels, size_t rows, size_t cols, ActivationFunc activation)
-			: Layer(channels, rows, cols), Activation(activation)
-		{
-		}
+		ActvLayer(ActivationFunc activation);
 
-		virtual void forward(const DTensor& input, DTensor& output) override;
-		virtual void backward(const DTensor& input, const DTensor& output, DTensor& inputDelta, const DTensor& outputDelta) override;
+		virtual void forward(const FTensor &input, FTensor &output) override;
+		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
 
-		virtual void update(double learningRate) override {};
+		virtual void update(float learningRate) override{};
 
 		ActivationFunc Activation;
 	};

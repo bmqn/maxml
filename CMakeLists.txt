@@ -6,6 +6,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 project(maxml)
 set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+if(MSVC)
+add_compile_options(
+	$<$<CONFIG:RELEASE>:/Ox>
+	$<$<CONFIG:RELEASE>:/GL>
+)
+add_link_options(
+	$<$<CONFIG:RELEASE>:/LTCG>
+)
+else()
+add_compile_options(
+	$<$<CONFIG:RELEASE>:-Ofast>
+)
+add_link_options(
+	$<$<CONFIG:RELEASE>:-flto>
+)
+endif()
+
 
 # --- Sources ---
 set(INC_FILES
@@ -26,6 +43,7 @@ set(SRC_FILES
 source_group("Include" FILES ${INC_FILES})
 source_group("Source"  FILES ${SRC_FILES})
 
+
 # --- Library ---
 add_library(
 	maxml STATIC
@@ -39,5 +57,14 @@ target_include_directories(
 	PRIVATE "${ROOT_DIR}/src"
 )
 
-# --- Sub Projects ---
-add_subdirectory(example)
+# --- Example ---
+add_executable(
+	example
+	"${ROOT_DIR}/example/Main.cpp"
+	"${ROOT_DIR}/example/MnistLoader.h"
+)
+
+target_link_libraries(
+	example
+	PUBLIC maxml
+)

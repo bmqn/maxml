@@ -8,203 +8,345 @@
 
 namespace maxml
 {
-	Sequential::Sequential(const SequentialDesc& sequentialDesc)
+	InputLayerDesc makeInput(size_t channels, size_t rows, size_t cols)
+	{
+		return {channels, rows, cols};
+	}
+
+	FullConLayerDesc makeFullCon(size_t numOutputs, ActivationFunc activFunc)
+	{
+		return {numOutputs, activFunc};
+	}
+
+	ConvLayerDesc makeConv(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activFunc)
+	{
+		return { numKernels, kernelWidth, kernelHeight, activFunc };
+	}
+
+	PoolLayerDesc makePool(size_t tileWidth, size_t tileHeight, PoolingFunc poolFunc)
+	{
+		return {tileWidth, tileHeight, poolFunc};
+	}
+
+	FlattenLayerDesc makeFlatten()
+	{
+		return {};
+	}
+
+	Sequential::Sequential(const SequentialDesc &sequentialDesc)
 	{
 		m_SequentialDesc = sequentialDesc;
-		
 		m_ObjectiveFunc = sequentialDesc.ObjectiveFunc;
 		m_LearningRate = sequentialDesc.LearningRate;
-		
-		unsigned int prevChannels = 0, prevRows = 0, prevCols = 0;
+
+		size_t inChannels = 0;
+		size_t inRows = 0;
+		size_t inCols = 0;
+
+		size_t outChannels = 0;
+		size_t outRows = 0;
+		size_t outCols = 0;
 
 		for (auto it = sequentialDesc.LayerDescs.begin(); it != sequentialDesc.LayerDescs.end(); it++)
 		{
-			SequentialDesc::VariantType layerDesc = *it;
+			SequentialDesc::LayerDesc layerDesc = *it;
 
 			switch (SequentialDesc::getLayerKind(layerDesc.index()))
 			{
-				case LayerKind::Input:
-				{
-					MML_ASSERT(it == sequentialDesc.LayerDescs.begin());
+			case LayerKind::Input:
+			{
+				MML_ASSERT(it == sequentialDesc.LayerDescs.begin(), "Cannot have more than one input layer!");
 
-					InputLayerDesc inpLayerDesc = std::get<InputLayerDesc>(layerDesc);
+				InputLayerDesc inpLayerDesc = std::get<InputLayerDesc>(layerDesc);
 
-					prevChannels = inpLayerDesc.Channels;
-					prevRows = inpLayerDesc.Rows;
-					prevCols = inpLayerDesc.Cols;
-					
-					break;
-				}
-				case LayerKind::FullyConnected:
-				{
-					MML_ASSERT(it != sequentialDesc.LayerDescs.begin());
+				inChannels = outChannels = inpLayerDesc.Channels;
+				inRows = outRows = inpLayerDesc.Rows;
+				inCols = outCols = inpLayerDesc.Cols;
 
-					FullyConnectedLayerDesc fcLayerDesc = std::get<FullyConnectedLayerDesc>(layerDesc);
-
-					unsigned int numInputs   = prevRows;
-					unsigned int numOutputs  = fcLayerDesc.NumOutputs;
-					ActivationFunc activFunc = fcLayerDesc.ActivFunc;
-
-					{
-						std::shared_ptr<DTensor> input = m_Data.empty() ? nullptr : m_Data.back().second;
-						std::shared_ptr<DTensor> output = std::make_shared<DTensor>(1, numOutputs, 1);
-						m_Data.push_back(std::make_pair(input, output));
-
-						std::shared_ptr<DTensor> inputDelta = m_Delta.empty() ? nullptr : m_Delta.back().second;
-						std::shared_ptr<DTensor> outputDelta = std::make_shared<DTensor>(1, numOutputs, 1);
-						m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
-						std::random_device rd;
-						std::mt19937 mt(rd());
-						std::normal_distribution dist(0.0, 1.0);
-
-						double scale = std::sqrt(1.0 / numInputs);
-
-						DTensor weights(1, numOutputs, numInputs);
-						DTensor biases(1, numOutputs, 1);
-
-						for (int i = 0; i < weights.size(); i++)
-						{
-							weights[i] = dist(mt) * scale;
-						}
-
-						m_Layers.push_back(std::make_shared<FullyConLayer>(std::move(weights), std::move(biases)));
-					}
-
-					if (activFunc != ActivationFunc::None)
-					{
-						std::shared_ptr<DTensor> input = m_Data.back().second;
-						std::shared_ptr<DTensor> output = std::make_shared<DTensor>(1, numOutputs, 1);
-						m_Data.push_back(std::make_pair(input, output));
-
-						std::shared_ptr<DTensor> inputDelta = m_Delta.back().second;
-						std::shared_ptr<DTensor> outputDelta = std::make_shared<DTensor>(1, numOutputs, 1);
-						m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
-						m_Layers.push_back(std::make_shared<ActvLayer>(1, numOutputs, 1, activFunc));
-					}
-
-					prevChannels = 1;
-					prevRows = numOutputs;
-					prevCols = 1;
-
-					break;
-				}
+				break;
 			}
+			case LayerKind::FullyConnected:
+			{
+				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
 
-			
+				FullConLayerDesc fcLayerDesc = std::get<FullConLayerDesc>(layerDesc);
+
+				size_t numInputs = outRows;
+				size_t numOutputs = fcLayerDesc.NumOutputs;
+				ActivationFunc activFunc = fcLayerDesc.ActivFunc;
+
+				inChannels = outChannels;
+				inRows = outRows;
+				inCols = outCols;
+
+				outChannels = 1;
+				outRows = numOutputs;
+				outCols = 1;
+
+				{
+					std::shared_ptr<FTensor> input = m_Data.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Data.back().second;
+					std::shared_ptr<FTensor> output = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Data.push_back(std::make_pair(input, output));
+
+					std::shared_ptr<FTensor> inputDelta = m_Delta.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Delta.back().second;
+					std::shared_ptr<FTensor> outputDelta = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
+
+					std::random_device rd;
+					std::mt19937 mt(rd());
+					std::normal_distribution dist(0.0f, 1.0f);
+
+					float scale = std::sqrtf(1.0f / static_cast<float>(numInputs));
+
+					FTensor weights(1, numOutputs, numInputs);
+					FTensor biases(1, numOutputs, 1);
+
+					for (size_t i = 0; i < weights.size(); i++)
+					{
+						weights[i] = dist(mt) * scale;
+					}
+
+					m_Layers.push_back(std::make_shared<FullyConLayer>(std::move(weights), std::move(biases)));
+				}
+
+				if (activFunc != ActivationFunc::None)
+				{
+					std::shared_ptr<FTensor> input = m_Data.back().second;
+					std::shared_ptr<FTensor> output = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Data.push_back(std::make_pair(input, output));
+
+					std::shared_ptr<FTensor> inputDelta = m_Delta.back().second;
+					std::shared_ptr<FTensor> outputDelta = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
+
+					m_Layers.push_back(std::make_shared<ActvLayer>(activFunc));
+				}
+
+				break;
+			}
+			case LayerKind::Convolutional:
+			{
+				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
+
+				ConvLayerDesc convLayerDesc = std::get<ConvLayerDesc>(layerDesc);
+
+				size_t kernelChannels = convLayerDesc.NumKernels;
+				size_t kernelRows = convLayerDesc.KernelWidth;
+				size_t kernelCols = convLayerDesc.KernelHeight;
+				ActivationFunc activFunc = convLayerDesc.ActivFunc;
+
+				inChannels = outChannels;
+				inRows = outRows;
+				inCols = outCols;
+
+				outChannels = kernelChannels;
+				outRows = (inRows - kernelRows) + 1;
+				outCols = (inCols - kernelCols) + 1;
+
+				{
+					std::shared_ptr<FTensor> input = m_Data.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Data.back().second;
+					std::shared_ptr<FTensor> output = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Data.push_back(std::make_pair(input, output));
+
+					std::shared_ptr<FTensor> inputDelta = m_Delta.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Delta.back().second;
+					std::shared_ptr<FTensor> outputDelta = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
+
+					std::random_device rd;
+					std::mt19937 mt(rd());
+					std::normal_distribution dist(0.0f, 1.0f);
+
+					FTensor kernel(kernelChannels, kernelRows, kernelCols);
+
+					for (size_t i = 0; i < kernel.size(); ++i)
+					{
+						kernel[i] = dist(mt);
+					}
+
+					m_Layers.push_back(std::make_shared<ConvLayer>(inChannels, outRows, outCols, kernel));
+				}
+
+
+				if (activFunc != ActivationFunc::None)
+				{
+					std::shared_ptr<FTensor> input = m_Data.back().second;
+					std::shared_ptr<FTensor> output = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Data.push_back(std::make_pair(input, output));
+
+					std::shared_ptr<FTensor> inputDelta = m_Delta.back().second;
+					std::shared_ptr<FTensor> outputDelta = std::make_shared<FTensor>(outChannels, outRows, outCols);
+					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
+
+					m_Layers.push_back(std::make_shared<ActvLayer>(activFunc));
+				}
+
+				break;
+			}
+			case LayerKind::Polling:
+			{
+				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
+
+				PoolLayerDesc poolLayerDesc = std::get<PoolLayerDesc>(layerDesc);
+				MML_ASSERT(poolLayerDesc.PoolFunc != PoolingFunc::Average, "Average pooling is not implemented yet!");
+
+				size_t tileWidth = poolLayerDesc.TileWidth;
+				size_t tileHeight = poolLayerDesc.TileHeight;
+
+				inChannels = outChannels;
+				inRows = outRows;
+				inCols = outCols;
+
+				outChannels = outChannels;
+				outRows = ((inRows - tileWidth) / tileWidth) + 1;
+				outCols = ((inCols - tileHeight) / tileHeight) + 1;
+
+				std::shared_ptr<FTensor> input = m_Data.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Data.back().second;
+				std::shared_ptr<FTensor> output = std::make_shared<FTensor>(outChannels, outRows, outCols);
+				m_Data.push_back(std::make_pair(input, output));
+
+				std::shared_ptr<FTensor> inputDelta = m_Delta.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Delta.back().second;
+				std::shared_ptr<FTensor> outputDelta = std::make_shared<FTensor>(outChannels, outRows, outCols);
+				m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
+
+				m_Layers.push_back(std::make_shared<MaxPoolLayer>(tileWidth, tileHeight));
+
+				break;
+			}
+			case LayerKind::Flatten:
+			{
+				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
+
+				FlattenLayerDesc flattenLayerDesc = std::get<FlattenLayerDesc>(layerDesc);
+
+				inChannels = outChannels;
+				inRows = outRows;
+				inCols = outCols;
+
+				outChannels = 1;
+				outRows = inChannels * inRows * inCols;
+				outCols = 1;
+
+				std::shared_ptr<FTensor> input = m_Data.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Data.back().second;
+				std::shared_ptr<FTensor> output = std::make_shared<FTensor>(outChannels, outRows, outCols);
+				m_Data.push_back(std::make_pair(input, output));
+
+				std::shared_ptr<FTensor> inputDelta = m_Delta.empty() ? std::make_shared<FTensor>(inChannels, inRows, inCols) : m_Delta.back().second;
+				std::shared_ptr<FTensor> outputDelta = std::make_shared<FTensor>(outChannels, outRows, outCols);
+				m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
+
+				m_Layers.push_back(std::make_shared<FlattenLayer>());
+
+				break;
+			}
+			}
 		}
 	}
 
-	const DTensor& Sequential::feedForward(const DTensor &input)
+	const FTensor &Sequential::feedForward(const FTensor &input)
 	{
-		InputLayerDesc inputLayerDesc = std::get<InputLayerDesc>(m_SequentialDesc.LayerDescs.front());
-
-		MML_ASSERT(input.channels() == inputLayerDesc.Channels
-			&& input.rows() == inputLayerDesc.Rows
-			&& input.cols() == inputLayerDesc.Cols
-		);
+		dataInputAt(0) = input;
 
 		for (auto it = m_Layers.begin(); it != m_Layers.end(); ++it)
 		{
-			auto currentLayer = *it;
+			std::shared_ptr<Layer> currentLayer = *it;
+			size_t currIdx = static_cast<size_t>(it - m_Layers.begin());
 
-			if (it == m_Layers.begin())
-			{
-				// TODO: The input for the first layer is always unused currently.
-				//       It would be best to use some kind of special 'input' layer.
-				currentLayer->forward(input, dataOutputAt(0));
-			}
-			else
-			{
-				size_t currIndex = static_cast<size_t>(it - m_Layers.begin());
-				currentLayer->forward(dataInputAt(currIndex), dataOutputAt(currIndex));
-			}
+			currentLayer->forward(
+				dataInputAt(currIdx),
+				dataOutputAt(currIdx));
 		}
 
 		return *m_Data.back().second;
 	}
 
-	double Sequential::feedBackward(const DTensor &expected)
+	float Sequential::feedBackward(const FTensor &expected)
 	{
 		if (m_ObjectiveFunc == LossFunc::MSE)
 		{
-			// Mean Square Error ...
-			DTensor::sub(dataOutputAt(m_Layers.size() - 1), expected, deltaOutputAt(m_Layers.size() - 1));
+			size_t lastLayerIdx = m_Layers.size() - 1;
+			size_t numOututs = deltaOutputAt(lastLayerIdx).rows();
 
-			for (auto it = m_Layers.rbegin(); it != m_Layers.rend() - 1; ++it)
+			FTensor::sub(
+				dataOutputAt(lastLayerIdx), expected,
+				deltaOutputAt(lastLayerIdx));
+
+			for (auto it = m_Layers.rbegin(); it != m_Layers.rend(); ++it)
 			{
-				auto currentLayer = *it;
+				std::shared_ptr<Layer> currentLayer = *it;
+				size_t currIdx = static_cast<size_t>(m_Layers.rend() - it - 1);
 
-				size_t currIndex = static_cast<size_t>(m_Layers.rend() - it - 1);
-				currentLayer->backward(dataInputAt(currIndex), dataOutputAt(currIndex), deltaInputAt(currIndex), deltaOutputAt(currIndex));
-				
+				currentLayer->backward(
+					dataInputAt(currIdx),
+					dataOutputAt(currIdx),
+					deltaInputAt(currIdx),
+					deltaOutputAt(currIdx));
 				currentLayer->update(m_LearningRate);
 			}
 
-			size_t numOututs = deltaOutputAt(m_Layers.size() - 1).rows();
-			auto error = DTensor::sumWith(
-				deltaOutputAt(m_Layers.size() - 1),
-				[](double x) { return x * x; }
-			) * (1.0 / (double)numOututs);
+			auto error = FTensor::sumWith(
+							 deltaOutputAt(lastLayerIdx),
+							 [](float x)
+							 { return x * x; }) *
+						 (1.0f / static_cast<float>(numOututs));
+
 			return error;
 		}
 		else
 		{
-			return std::numeric_limits<double>::infinity();
+			return std::numeric_limits<float>::infinity();
 		}
 	}
 
-	const DTensor& Sequential::dataInputAt(size_t index) const
+	const FTensor &Sequential::dataInputAt(size_t index) const
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 
 		return *(m_Data[index].first);
 	}
 
-	const DTensor& Sequential::dataOutputAt(size_t index) const
+	const FTensor &Sequential::dataOutputAt(size_t index) const
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 
 		return *(m_Data[index].second);
 	}
 
-	const DTensor& Sequential::deltaInputAt(size_t index) const
+	const FTensor &Sequential::deltaInputAt(size_t index) const
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 
 		return *(m_Delta[index].first);
 	}
 
-	const DTensor& Sequential::deltaOutputAt(size_t index) const
+	const FTensor &Sequential::deltaOutputAt(size_t index) const
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 
 		return *(m_Delta[index].second);
 	}
 
-	DTensor& Sequential::dataInputAt(size_t index)
+	FTensor &Sequential::dataInputAt(size_t index)
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 
 		return *(m_Data[index].first);
 	}
 
-	DTensor& Sequential::dataOutputAt(size_t index)
+	FTensor &Sequential::dataOutputAt(size_t index)
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 
 		return *(m_Data[index].second);
 	}
 
-	DTensor& Sequential::deltaInputAt(size_t index)
+	FTensor &Sequential::deltaInputAt(size_t index)
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 
 		return *(m_Delta[index].first);
 	}
 
-	DTensor& Sequential::deltaOutputAt(size_t index)
+	FTensor &Sequential::deltaOutputAt(size_t index)
 	{
 		MML_ASSERT(index >= 0 && index < m_Layers.size());
 

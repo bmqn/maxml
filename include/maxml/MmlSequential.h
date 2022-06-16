@@ -11,19 +11,24 @@ namespace maxml
 	/*
 	* TODO: Describe a network with a json or xml file.
 	*       See the json file below for an idea of how this might work.
-	* 
-	* 
+	*
+
 	{
 		"Name": "MnistNetwork",
-		"LossFunc": "MeanSquared",
+		"LossFunc": "MSE",
 		"LearningRate": 0.3,
 		"Layers": [
 			{
 				"Kind": "Input",
 				"Description": {
 					"Channels": 1,
-					"Rows": 784,
-					"Cols": 1
+					"Rows": 28,
+					"Cols": 28
+				}
+			},
+			{
+				"Kind": "Flatten"
+				"Description": {
 				}
 			},
 			{
@@ -49,6 +54,7 @@ namespace maxml
 			}
 		]
 	}
+
 	*/
 
 	struct Layer;
@@ -56,46 +62,76 @@ namespace maxml
 	enum class ActivationFunc
 	{
 		None = -1,
+		Sigmoid = 0,
+		Tanh = 1,
+		ReLU = 2
+	};
 
-		Sigmoid,
-		Tanh,
-		ReLU
+	enum class PoolingFunc
+	{
+		Max = 0,
+		Average = 1
 	};
 
 	enum class LossFunc
 	{
-		MSE
+		MSE = 0
 	};
 
 	enum class LayerKind
 	{
-		Input,
-		FullyConnected
+		Input = 0,
+		FullyConnected = 1,
+		Convolutional = 2,
+		Polling = 3,
+		Flatten = 4
 	};
 
 	struct InputLayerDesc
 	{
-		unsigned int Channels = 0;
-		unsigned int Rows = 0;
-		unsigned int Cols = 0;
+		size_t Channels = 0;
+		size_t Rows = 0;
+		size_t Cols = 0;
 	};
 
-	struct FullyConnectedLayerDesc
+	struct FullConLayerDesc
 	{
-		unsigned int   NumOutputs = 0;
+		size_t NumOutputs = 0;
 		ActivationFunc ActivFunc = ActivationFunc::None;
+	};
+
+	struct ConvLayerDesc
+	{
+		size_t NumKernels = 8;
+		size_t KernelWidth = 3;
+		size_t KernelHeight = 3;
+		ActivationFunc ActivFunc = ActivationFunc::None;
+	};
+
+	struct PoolLayerDesc
+	{
+		size_t TileWidth = 2;
+		size_t TileHeight = 2;
+		PoolingFunc PoolFunc = PoolingFunc::Max;
+	};
+
+	struct FlattenLayerDesc
+	{
 	};
 
 	struct SequentialDesc
 	{
-		using VariantType = std::variant<
-			InputLayerDesc,         // Input
-			FullyConnectedLayerDesc // FullyConnected
+		using LayerDesc = std::variant<
+			InputLayerDesc,	  // Input
+			FullConLayerDesc, // FullyConnected
+			ConvLayerDesc,	  // Convolutional
+			PoolLayerDesc,	  // Pooling
+			FlattenLayerDesc  // Flatten
 		>;
 
-		LossFunc                 ObjectiveFunc = LossFunc::MSE;
-		double                   LearningRate = 0.1;
-		std::vector<VariantType> LayerDescs = {};
+		LossFunc ObjectiveFunc = LossFunc::MSE;
+		float LearningRate = 0.1f;
+		std::vector<LayerDesc> LayerDescs = {};
 
 		static LayerKind getLayerKind(size_t index)
 		{
@@ -105,42 +141,48 @@ namespace maxml
 		}
 	};
 
+	InputLayerDesc makeInput(size_t channels, size_t rows, size_t cols);
+	FullConLayerDesc makeFullCon(size_t numOutputs, ActivationFunc activFunc);
+	ConvLayerDesc makeConv(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activFunc);
+	PoolLayerDesc makePool(size_t tileWidth, size_t tileHeight, PoolingFunc poolFunc);
+	FlattenLayerDesc makeFlatten();
+
 	class Sequential
 	{
 	public:
 		Sequential() = delete;
-		Sequential(const SequentialDesc& sequentialDesc);
+		Sequential(const SequentialDesc &sequentialDesc);
 
-		Sequential(const Sequential& other) = delete;
-		Sequential(const Sequential&& other) = delete;
-		Sequential& operator=(const Sequential& other) = delete;
-		Sequential& operator=(const Sequential&& other) = delete;
+		Sequential(const Sequential &other) = delete;
+		Sequential(const Sequential &&other) = delete;
+		Sequential &operator=(const Sequential &other) = delete;
+		Sequential &operator=(const Sequential &&other) = delete;
 
-		const DTensor& feedForward(const DTensor& input);
-		double feedBackward(const DTensor& expected);
+		const FTensor &feedForward(const FTensor &input);
+		float feedBackward(const FTensor &expected);
 
 	private:
-		const DTensor& dataInputAt(size_t index) const;
-		const DTensor& dataOutputAt(size_t index) const;
-		const DTensor& deltaInputAt(size_t index) const;
-		const DTensor& deltaOutputAt(size_t index) const;
+		const FTensor &dataInputAt(size_t index) const;
+		const FTensor &dataOutputAt(size_t index) const;
+		const FTensor &deltaInputAt(size_t index) const;
+		const FTensor &deltaOutputAt(size_t index) const;
 
-		DTensor& dataInputAt(size_t index);
-		DTensor& dataOutputAt(size_t index);
-		DTensor& deltaInputAt(size_t index);
-		DTensor& deltaOutputAt(size_t index);
+		FTensor &dataInputAt(size_t index);
+		FTensor &dataOutputAt(size_t index);
+		FTensor &deltaInputAt(size_t index);
+		FTensor &deltaOutputAt(size_t index);
 
 	private:
 		// Each layer has a pair of tensors for input and output, respectively
-		std::vector<std::pair<std::shared_ptr<DTensor>, std::shared_ptr<DTensor>>> m_Data;
-		std::vector<std::pair<std::shared_ptr<DTensor>, std::shared_ptr<DTensor>>> m_Delta;
+		std::vector<std::pair<std::shared_ptr<FTensor>, std::shared_ptr<FTensor>>> m_Data;
+		std::vector<std::pair<std::shared_ptr<FTensor>, std::shared_ptr<FTensor>>> m_Delta;
 		std::vector<std::shared_ptr<Layer>> m_Layers;
 
 		// TODO: This should probably be specified with an 'output' layer
 		LossFunc m_ObjectiveFunc;
 
 		// TODO: This should probably be associated with some kind of 'optimizer' object
-		double m_LearningRate;
+		float m_LearningRate;
 
 		SequentialDesc m_SequentialDesc;
 	};
