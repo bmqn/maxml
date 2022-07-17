@@ -1,19 +1,98 @@
 #include "maxml/MmlSequential.h"
 #include "maxml/MmlTensor.h"
 
-#include "MnistLoader.h"
-
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <limits>
-
+#include <string>
+#include <fstream>
 #include <ctime>
 #include <cmath>
 
+static unsigned char **read_mnist_images(std::string full_path, int &number_of_images, int &image_size)
+{
+	auto reverseInt = [](int i)
+	{
+		unsigned char c1, c2, c3, c4;
+		c1 = i & 255, c2 = (i >> 8) & 255, c3 = (i >> 16) & 255, c4 = (i >> 24) & 255;
+		return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
+	};
+
+	typedef unsigned char uchar;
+
+	std::ifstream file(full_path, std::ios::binary);
+
+	if (file.is_open())
+	{
+		int magic_number = 0, n_rows = 0, n_cols = 0;
+
+		file.read((char *)&magic_number, sizeof(magic_number));
+		magic_number = reverseInt(magic_number);
+
+		if (magic_number != 2051)
+			throw std::runtime_error("Invalid MNIST image file!");
+
+		file.read((char *)&number_of_images, sizeof(number_of_images)), number_of_images = reverseInt(number_of_images);
+		file.read((char *)&n_rows, sizeof(n_rows)), n_rows = reverseInt(n_rows);
+		file.read((char *)&n_cols, sizeof(n_cols)), n_cols = reverseInt(n_cols);
+
+		image_size = n_rows * n_cols;
+
+		uchar **_dataset = new uchar *[number_of_images];
+		for (int i = 0; i < number_of_images; i++)
+		{
+			_dataset[i] = new uchar[image_size];
+			file.read((char *)_dataset[i], image_size);
+		}
+		return _dataset;
+	}
+	else
+	{
+		throw std::runtime_error("Cannot open file `" + full_path + "`!");
+	}
+}
+
+static unsigned char *read_mnist_labels(std::string full_path, int &number_of_labels)
+{
+	auto reverseInt = [](int i)
+	{
+		unsigned char c1, c2, c3, c4;
+		c1 = i & 255, c2 = (i >> 8) & 255, c3 = (i >> 16) & 255, c4 = (i >> 24) & 255;
+		return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
+	};
+
+	typedef unsigned char uchar;
+
+	std::ifstream file(full_path, std::ios::binary);
+
+	if (file.is_open())
+	{
+		int magic_number = 0;
+		file.read((char *)&magic_number, sizeof(magic_number));
+		magic_number = reverseInt(magic_number);
+
+		if (magic_number != 2049)
+			throw std::runtime_error("Invalid MNIST label file!");
+
+		file.read((char *)&number_of_labels, sizeof(number_of_labels)), number_of_labels = reverseInt(number_of_labels);
+
+		uchar *_dataset = new uchar[number_of_labels];
+		for (int i = 0; i < number_of_labels; i++)
+		{
+			file.read((char *)&_dataset[i], 1);
+		}
+		return _dataset;
+	}
+	else
+	{
+		throw std::runtime_error("Unable to open file `" + full_path + "`!");
+	}
+}
+
 static void RegressionExample()
 {
-	srand(time(nullptr));
+	srand(static_cast<unsigned int>(time(nullptr)));
 
 	auto func = [](float x) -> float
 	{
@@ -47,17 +126,17 @@ static void RegressionExample()
 		}
 	}
 
-	std::vector<std::pair<maxml::FTensor, maxml::FTensor>> data;
+	std::vector<std::pair<maxml::Tensor, maxml::Tensor>> data;
 
 	for (float x = lower; x <= upper; x += step)
 	{
-		data.emplace_back(maxml::FTensor{x},
-						  maxml::FTensor{func(x) / supremum});
+		data.emplace_back(maxml::Tensor{x},
+						  maxml::Tensor{func(x) / supremum});
 	}
 
 	maxml::SequentialDesc seqDesc;
 	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.1;
+	seqDesc.LearningRate = 0.1f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 1, 1),
 		maxml::makeFullCon(16, maxml::ActivationFunc::Tanh),
@@ -78,8 +157,8 @@ static void RegressionExample()
 		{
 			int choice = rand() % data.size();
 
-			const maxml::FTensor &inp = data[choice].first;
-			const maxml::FTensor &exp = data[choice].second;
+			const maxml::Tensor &inp = data[choice].first;
+			const maxml::Tensor &exp = data[choice].second;
 
 			seq.feedForward(inp);
 			errHist.push_back(seq.feedBackward(exp));
@@ -107,8 +186,8 @@ static void RegressionExample()
 		{
 			float x = lower + (upper - lower) * ((float)i / (float)points);
 
-			maxml::FTensor inp = {x};
-			maxml::FTensor out = seq.feedForward(inp);
+			maxml::Tensor inp = {x};
+			maxml::Tensor out = seq.feedForward(inp);
 
 			if (i < points)
 				ss << "(" << inp[0] << ", " << out[0] * supremum << "),";
@@ -122,11 +201,11 @@ static void RegressionExample()
 
 static void MnistExample()
 {
-	srand(time(nullptr));
+	srand(static_cast<unsigned int>(time(nullptr)));
 
 	maxml::SequentialDesc seqDesc;
 	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.1;
+	seqDesc.LearningRate = 0.1f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 28, 28),
 		maxml::makeConv(16, 3, 3, maxml::ActivationFunc::Tanh),
@@ -143,17 +222,17 @@ static void MnistExample()
 		int trainImageSize;
 		int numTrainLabels;
 
-		unsigned char **trainImages = read_mnist_images("../res/train-images.idx3-ubyte", numTrainImages, trainImageSize);
-		unsigned char *trainLabels = read_mnist_labels("../res/train-labels.idx1-ubyte", numTrainLabels);
+		unsigned char **trainImages = read_mnist_images("train-images.idx3-ubyte", numTrainImages, trainImageSize);
+		unsigned char *trainLabels = read_mnist_labels("train-labels.idx1-ubyte", numTrainLabels);
 
 		int trainImageWidth = static_cast<int>(std::sqrt(static_cast<float>(trainImageSize)));
 
-		std::vector<std::pair<maxml::FTensor, maxml::FTensor>> trainData;
+		std::vector<std::pair<maxml::Tensor, maxml::Tensor>> trainData;
 
 		for (int c = 0; c < numTrainImages; c++)
 		{
-			maxml::FTensor image(1, trainImageWidth, trainImageWidth);
-			maxml::FTensor label(1, 10, 1);
+			maxml::Tensor image(1, trainImageWidth, trainImageWidth);
+			maxml::Tensor label(1, 10, 1);
 
 			for (int i = 0; i < trainImageSize; i++)
 			{
@@ -208,12 +287,12 @@ static void MnistExample()
 
 		int testImageWidth = static_cast<int>(std::sqrt(static_cast<float>(testImageSize)));
 
-		std::vector<std::pair<maxml::FTensor, maxml::FTensor>> testData;
+		std::vector<std::pair<maxml::Tensor, maxml::Tensor>> testData;
 
 		for (int c = 0; c < numTestImages; c++)
 		{
-			maxml::FTensor image(1, testImageWidth, testImageWidth);
-			maxml::FTensor label(1, 10, 1);
+			maxml::Tensor image(1, testImageWidth, testImageWidth);
+			maxml::Tensor label(1, 10, 1);
 
 			for (int i = 0; i < testImageSize; i++)
 			{
@@ -241,9 +320,9 @@ static void MnistExample()
 		{
 			int choice = rand() % numTestImages;
 
-			const maxml::FTensor &inp = testData[choice].first;
-			const maxml::FTensor &exp = testData[choice].second;
-			const maxml::FTensor &out = seq.feedForward(inp);
+			const maxml::Tensor &inp = testData[choice].first;
+			const maxml::Tensor &exp = testData[choice].second;
+			const maxml::Tensor &out = seq.feedForward(inp);
 
 			float currentMax = -std::numeric_limits<float>::infinity();
 			int expected = 0;
@@ -278,8 +357,8 @@ static void MnistExample()
 
 int main(void)
 {
-	RegressionExample();
-	// MnistExample();
+	// RegressionExample();
+	MnistExample();
 
 	return 0;
 }

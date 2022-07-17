@@ -6,40 +6,40 @@
 
 namespace maxml
 {
-	FullyConLayer::FullyConLayer(FTensor &&weights, FTensor &&biases)
-		: DeltaWeights(weights.channels(), weights.rows(), weights.cols()), DeltaBiases(weights.channels(), weights.rows(), 1), Weights(std::forward<FTensor>(weights)), Biases(std::forward<FTensor>(biases))
+	FullyConLayer::FullyConLayer(Tensor &&weights, Tensor &&biases)
+		: DeltaWeights(weights.channels(), weights.rows(), weights.cols()), DeltaBiases(weights.channels(), weights.rows(), 1), Weights(std::forward<Tensor>(weights)), Biases(std::forward<Tensor>(biases))
 	{
 	}
 
-	void FullyConLayer::forward(const FTensor &input, FTensor &output)
+	void FullyConLayer::forward(const Tensor &input, Tensor &output)
 	{
-		FTensor::matMult(Weights, input, output);
-		FTensor::add(output, Biases, output);
+		Tensor::matMult(Weights, input, output);
+		Tensor::add(output, Biases, output);
 	}
 
-	void FullyConLayer::backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta)
+	void FullyConLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
-		FTensor::matMult(FTensor::transpose(Weights), outputDelta, inputDelta);
-		FTensor::matMult(outputDelta, FTensor::transpose(input), DeltaWeights);
-		FTensor::copy(outputDelta, DeltaBiases);
+		Tensor::matMult(Tensor::transpose(Weights), outputDelta, inputDelta);
+		Tensor::matMult(outputDelta, Tensor::transpose(input), DeltaWeights);
+		Tensor::copy(outputDelta, DeltaBiases);
 	}
 
 	void FullyConLayer::update(float learningRate)
 	{
-		FTensor::aMinusXMultB(Weights, DeltaWeights, learningRate, Weights);
-		FTensor::aMinusXMultB(Biases, DeltaBiases, learningRate, Biases);
+		Tensor::aMinusXMultB(Weights, DeltaWeights, learningRate, Weights);
+		Tensor::aMinusXMultB(Biases, DeltaBiases, learningRate, Biases);
 	}
 
-	ConvLayer::ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const FTensor &kernel)
+	ConvLayer::ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel)
 		: KernelChannels(kernel.channels()), KernelRows(kernel.rows()), KernelCols(kernel.cols()), KernelWindowed(inChannels, kernel.channels(), kernel.rows() * kernel.cols()), InputWindowed(inChannels, kernel.rows() * kernel.cols(), outRows * outCols), DeltaKernelWindowed(inChannels, kernel.channels(), kernel.rows() * kernel.cols()), DeltaInputWindowed(inChannels, kernel.rows() * kernel.cols(), outRows * outCols)
 	{
 		for (size_t iChan = 0; iChan < inChannels; ++iChan)
 		{
-			KernelWindowed.fill(iChan, FTensor::resize(kernel, 1, kernel.channels(), kernel.rows() * kernel.cols()));
+			KernelWindowed.fill(iChan, Tensor::resize(kernel, 1, kernel.channels(), kernel.rows() * kernel.cols()));
 		}
 	}
 
-	void ConvLayer::forward(const FTensor &input, FTensor &output)
+	void ConvLayer::forward(const Tensor &input, Tensor &output)
 	{
 		for (size_t winRow = 0; winRow < InputWindowed.rows(); ++winRow)
 		{
@@ -55,20 +55,20 @@ namespace maxml
 			}
 		}
 
-		FTensor result = FTensor::matMult(KernelWindowed, InputWindowed);
+		Tensor result = Tensor::matMult(KernelWindowed, InputWindowed);
 		result.resize(output.channels(), output.rows(), output.cols());
 		result.transpose();
 
-		FTensor::copy(result, output);
+		Tensor::copy(result, output);
 	}
 
-	void ConvLayer::backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta)
+	void ConvLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
-		FTensor deltaOutputWindowed = FTensor::transpose(outputDelta);
+		Tensor deltaOutputWindowed = Tensor::transpose(outputDelta);
 		deltaOutputWindowed.resize(inputDelta.channels(), KernelChannels, outputDelta.rows() * outputDelta.cols());
 
-		FTensor::matMult(deltaOutputWindowed, FTensor::transpose(InputWindowed), DeltaKernelWindowed);
-		FTensor::matMult(FTensor::transpose(KernelWindowed), deltaOutputWindowed, DeltaInputWindowed);
+		Tensor::matMult(deltaOutputWindowed, Tensor::transpose(InputWindowed), DeltaKernelWindowed);
+		Tensor::matMult(Tensor::transpose(KernelWindowed), deltaOutputWindowed, DeltaInputWindowed);
 
 		for (size_t winRow = 0; winRow < DeltaInputWindowed.rows(); ++winRow)
 		{
@@ -87,7 +87,7 @@ namespace maxml
 
 	void ConvLayer::update(float learningRate)
 	{
-		FTensor::aMinusXMultB(KernelWindowed, DeltaKernelWindowed, learningRate, KernelWindowed);
+		Tensor::aMinusXMultB(KernelWindowed, DeltaKernelWindowed, learningRate, KernelWindowed);
 	}
 
 	MaxPoolLayer::MaxPoolLayer(size_t tileWidth, size_t tileHeight)
@@ -95,7 +95,7 @@ namespace maxml
 	{
 	}
 
-	void MaxPoolLayer::forward(const FTensor &input, FTensor &output)
+	void MaxPoolLayer::forward(const Tensor &input, Tensor &output)
 	{
 		for (size_t iChan = 0; iChan < output.channels(); ++iChan)
 		{
@@ -124,7 +124,7 @@ namespace maxml
 		}
 	}
 
-	void MaxPoolLayer::backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta)
+	void MaxPoolLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
 		inputDelta.fill(0.0);
 
@@ -154,14 +154,14 @@ namespace maxml
 		}
 	}
 
-	void FlattenLayer::forward(const FTensor &input, FTensor &output)
+	void FlattenLayer::forward(const Tensor &input, Tensor &output)
 	{
-		FTensor::copy(input, output);
+		Tensor::copy(input, output);
 	}
 
-	void FlattenLayer::backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta)
+	void FlattenLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
-		FTensor::copy(outputDelta, inputDelta);
+		Tensor::copy(outputDelta, inputDelta);
 	}
 
 	ActvLayer::ActvLayer(ActivationFunc activation)
@@ -169,42 +169,42 @@ namespace maxml
 	{
 	}
 
-	void ActvLayer::forward(const FTensor &input, FTensor &output)
+	void ActvLayer::forward(const Tensor &input, Tensor &output)
 	{
 		switch (Activation)
 		{
 		case ActivationFunc::Sigmoid:
-			FTensor::fastSig(input, output);
+			Tensor::fastSig(input, output);
 			break;
 		case ActivationFunc::Tanh:
-			FTensor::mapWith(
+			Tensor::mapWith(
 				input, [](float x)
 				{ return tanh(x); },
 				output);
 			break;
 		case ActivationFunc::ReLU:
-			FTensor::fastRelu(input, output);
+			Tensor::fastRelu(input, output);
 			break;
 		}
 	}
 
-	void ActvLayer::backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta)
+	void ActvLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
 		switch (Activation)
 		{
 		case ActivationFunc::Sigmoid:
-			FTensor::fastSigDeriv(output, inputDelta);
-			FTensor::mult(inputDelta, outputDelta, inputDelta);
+			Tensor::fastSigDeriv(output, inputDelta);
+			Tensor::mult(inputDelta, outputDelta, inputDelta);
 			break;
 		case ActivationFunc::Tanh:
-			FTensor::zipWith(
+			Tensor::zipWith(
 				input, outputDelta, [](float x, float y)
 				{ return (tanhPrime(x)) * y; },
 				inputDelta);
 			break;
 		case ActivationFunc::ReLU:
-			FTensor::fastReluDeriv(input, inputDelta);
-			FTensor::mult(inputDelta, outputDelta, inputDelta);
+			Tensor::fastReluDeriv(input, inputDelta);
+			Tensor::mult(inputDelta, outputDelta, inputDelta);
 			break;
 		}
 	}

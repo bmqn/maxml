@@ -5,8 +5,8 @@
 
 #include "MmlLog.h"
 
+#include <cstdint>
 #include <memory>
-#include <cinttypes>
 
 namespace maxml
 {
@@ -14,8 +14,8 @@ namespace maxml
 	{
 		virtual ~Layer() {}
 
-		virtual void forward(const FTensor &input, FTensor &output) = 0;
-		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) = 0;
+		virtual void forward(const Tensor &input, Tensor &output) = 0;
+		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) = 0;
 
 		virtual void update(float learningRate) = 0;
 	};
@@ -23,27 +23,27 @@ namespace maxml
 	struct FullyConLayer : public Layer
 	{
 		FullyConLayer() = delete;
-		FullyConLayer(FTensor &&weights, FTensor &&biases);
+		FullyConLayer(Tensor &&weights, Tensor &&biases);
 
-		virtual void forward(const FTensor &input, FTensor &output) override;
-		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+		virtual void forward(const Tensor &input, Tensor &output) override;
+		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
 		virtual void update(float learningRate) override;
 
-		FTensor DeltaWeights;
-		FTensor DeltaBiases;
+		Tensor DeltaWeights;
+		Tensor DeltaBiases;
 
-		FTensor Weights;
-		FTensor Biases;
+		Tensor Weights;
+		Tensor Biases;
 	};
 
 	struct ConvLayer : public Layer
 	{
 		ConvLayer() = delete;
-		ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const FTensor &kernel);
+		ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel);
 
-		virtual void forward(const FTensor &input, FTensor &output) override;
-		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+		virtual void forward(const Tensor &input, Tensor &output) override;
+		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
 		virtual void update(float learningRate) override;
 
@@ -51,11 +51,11 @@ namespace maxml
 		size_t KernelRows;
 		size_t KernelCols;
 
-		FTensor KernelWindowed;
-		FTensor InputWindowed;
+		Tensor KernelWindowed;
+		Tensor InputWindowed;
 
-		FTensor DeltaKernelWindowed;
-		FTensor DeltaInputWindowed;
+		Tensor DeltaKernelWindowed;
+		Tensor DeltaInputWindowed;
 	};
 
 	struct MaxPoolLayer : public Layer
@@ -63,8 +63,8 @@ namespace maxml
 		MaxPoolLayer() = delete;
 		MaxPoolLayer(size_t tileWidth, size_t tileHeight);
 
-		virtual void forward(const FTensor &input, FTensor &output) override;
-		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+		virtual void forward(const Tensor &input, Tensor &output) override;
+		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
 		virtual void update(float learningRate) override{};
 
@@ -74,8 +74,8 @@ namespace maxml
 
 	struct FlattenLayer : public Layer
 	{
-		virtual void forward(const FTensor &input, FTensor &output) override;
-		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+		virtual void forward(const Tensor &input, Tensor &output) override;
+		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
 		virtual void update(float learningRate) override{};
 	};
@@ -85,8 +85,8 @@ namespace maxml
 		ActvLayer() = delete;
 		ActvLayer(ActivationFunc activation);
 
-		virtual void forward(const FTensor &input, FTensor &output) override;
-		virtual void backward(const FTensor &input, const FTensor &output, FTensor &inputDelta, const FTensor &outputDelta) override;
+		virtual void forward(const Tensor &input, Tensor &output) override;
+		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
 		virtual void update(float learningRate) override{};
 

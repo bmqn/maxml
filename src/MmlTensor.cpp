@@ -14,43 +14,38 @@
 
 namespace maxml
 {
-	template <typename T>
-	Tensor<T>::Tensor(size_t channels, size_t rows, size_t cols, T *data)
+	Tensor::Tensor(size_t channels, size_t rows, size_t cols, float *data)
 		: m_Channels(channels), m_Rows(rows), m_Cols(cols), m_Size(channels * rows * cols), m_Data(data)
 	{
 	}
 
-	template <typename T>
-	Tensor<T>::Tensor()
+	Tensor::Tensor()
 		: m_Channels(0), m_Rows(0), m_Cols(0), m_Size(0), m_Data(nullptr)
 	{
 	}
 
-	template <typename T>
-	Tensor<T>::Tensor(size_t channels, size_t rows, size_t cols)
+	Tensor::Tensor(size_t channels, size_t rows, size_t cols)
 		: m_Channels(channels), m_Rows(rows), m_Cols(cols), m_Size(channels * rows * cols), m_Data(nullptr)
 	{
-		m_Data = reinterpret_cast<T *>(_mm_malloc(m_Size * sizeof(T), 32));
+		m_Data = reinterpret_cast<float *>(_mm_malloc(m_Size * sizeof(float), 32));
 		MML_ASSERT(m_Data != nullptr, "Failed to allocate memory for tensor!");
 
-		std::memset(m_Data, 0, m_Size * sizeof(T));
+		std::memset(m_Data, 0, m_Size * sizeof(float));
 	}
 
-	template <typename T>
-	Tensor<T>::Tensor(std::initializer_list<T> data)
+	Tensor::Tensor(std::initializer_list<float> data)
 		: m_Channels(1), m_Rows(data.size()), m_Cols(1), m_Size(m_Channels * m_Rows * m_Cols), m_Data(nullptr)
 	{
-		m_Data = reinterpret_cast<T *>(_mm_malloc(m_Size * sizeof(T), 32));
+		m_Data = reinterpret_cast<float *>(_mm_malloc(m_Size * sizeof(float), 32));
 		MML_ASSERT(m_Data != nullptr, "Failed to allocate memory for tensor!");
 
 		std::copy(data.begin(), data.end(), m_Data);
 	}
 
-	template <typename T>
-	Tensor<T>::Tensor(std::initializer_list<std::initializer_list<T>> data)
+	Tensor::Tensor(std::initializer_list<std::initializer_list<float>> data)
 		: m_Channels(1), m_Rows(data.size()), m_Cols(data.begin()->size()), m_Size(m_Channels * m_Rows * m_Cols), m_Data(nullptr)
 	{
-		m_Data = reinterpret_cast<T *>(_mm_malloc(m_Size * sizeof(T), 32));
+		m_Data = reinterpret_cast<float *>(_mm_malloc(m_Size * sizeof(float), 32));
 		MML_ASSERT(m_Data != nullptr, "Failed to allocate memory for tensor!");
 
 		size_t i = 0;
@@ -60,12 +55,11 @@ namespace maxml
 			i++;
 		}
 	}
-
-	template <typename T>
-	Tensor<T>::Tensor(std::initializer_list<std::initializer_list<std::initializer_list<T>>> data)
+	
+	Tensor::Tensor(std::initializer_list<std::initializer_list<std::initializer_list<float>>> data)
 		: m_Channels(data.size()), m_Rows(data.begin()->size()), m_Cols(data.begin()->begin()->size()), m_Size(m_Channels * m_Rows * m_Cols), m_Data(nullptr)
 	{
-		m_Data = reinterpret_cast<T *>(_mm_malloc(m_Size * sizeof(T), 32));
+		m_Data = reinterpret_cast<float *>(_mm_malloc(m_Size * sizeof(float), 32));
 		MML_ASSERT(m_Data != nullptr, "Failed to allocate memory for tensor!");
 
 		size_t i = 0, j = 0;
@@ -81,18 +75,16 @@ namespace maxml
 		}
 	}
 
-	template <typename T>
-	Tensor<T>::Tensor(const Tensor<T> &tensor)
+	Tensor::Tensor(const Tensor &tensor)
 		: m_Channels(tensor.m_Channels), m_Rows(tensor.m_Rows), m_Cols(tensor.m_Cols), m_Size(tensor.m_Size), m_Data(nullptr)
 	{
-		m_Data = reinterpret_cast<T *>(_mm_malloc(m_Size * sizeof(T), 32));
+		m_Data = reinterpret_cast<float *>(_mm_malloc(m_Size * sizeof(float), 32));
 		MML_ASSERT(m_Data != nullptr, "Failed to allocate memory for tensor!");
 
 		std::copy(tensor.m_Data, tensor.m_Data + m_Size, m_Data);
 	}
 
-	template <typename T>
-	Tensor<T>::Tensor(Tensor<T> &&tensor) noexcept
+	Tensor::Tensor(Tensor &&tensor) noexcept
 		: m_Channels(tensor.m_Channels), m_Rows(tensor.m_Rows), m_Cols(tensor.m_Cols), m_Size(tensor.m_Size), m_Data(tensor.m_Data)
 	{
 		tensor.m_Channels = 0;
@@ -102,14 +94,12 @@ namespace maxml
 		tensor.m_Data = nullptr;
 	}
 
-	template <typename T>
-	Tensor<T>::~Tensor()
+	Tensor::~Tensor()
 	{
 		_mm_free(m_Data);
 	}
 
-	template <typename T>
-	Tensor<T> &Tensor<T>::operator=(const Tensor<T> &tensor)
+	Tensor &Tensor::operator=(const Tensor &tensor)
 	{
 		if (this == &tensor)
 		{
@@ -126,7 +116,7 @@ namespace maxml
 
 			m_Size = tensor.m_Size;
 
-			m_Data = reinterpret_cast<T *>(_mm_malloc(m_Size * sizeof(T), 32));
+			m_Data = reinterpret_cast<float *>(_mm_malloc(m_Size * sizeof(float), 32));
 			MML_ASSERT(m_Data != nullptr, "Failed to allocate memory for tensor!");
 		}
 
@@ -135,8 +125,7 @@ namespace maxml
 		return *this;
 	}
 
-	template <typename T>
-	Tensor<T> &Tensor<T>::operator=(Tensor<T> &&tensor) noexcept
+	Tensor &Tensor::operator=(Tensor &&tensor) noexcept
 	{
 		MML_ASSERT(this != &tensor);
 
@@ -157,8 +146,7 @@ namespace maxml
 		return *this;
 	}
 
-	template <typename T>
-	T &Tensor<T>::operator()(size_t channel, size_t row, size_t col)
+	float &Tensor::operator()(size_t channel, size_t row, size_t col)
 	{
 		MML_ASSERT(channel >= 0 && channel < m_Channels && row >= 0 && row < m_Rows && col >= 0 && col < m_Cols);
 
@@ -166,8 +154,7 @@ namespace maxml
 		return m_Data[index];
 	}
 
-	template <typename T>
-	const T &Tensor<T>::operator()(size_t channel, size_t row, size_t col) const
+	const float &Tensor::operator()(size_t channel, size_t row, size_t col) const
 	{
 		MML_ASSERT(channel >= 0 && channel < m_Channels && row >= 0 && row < m_Rows && col >= 0 && col < m_Cols);
 
@@ -175,62 +162,53 @@ namespace maxml
 		return m_Data[index];
 	}
 
-	template <typename T>
-	T &Tensor<T>::operator[](size_t index)
+	float &Tensor::operator[](size_t index)
 	{
 		MML_ASSERT(index >= 0 && index < m_Size);
 
 		return m_Data[index];
 	}
 
-	template <typename T>
-	const T &Tensor<T>::operator[](size_t index) const
+	const float &Tensor::operator[](size_t index) const
 	{
 		MML_ASSERT(index >= 0 && index < m_Size);
 
 		return m_Data[index];
 	}
 
-	template <typename T>
-	size_t Tensor<T>::size() const
+	size_t Tensor::size() const
 	{
 		return m_Size;
 	}
 
-	template <typename T>
-	size_t Tensor<T>::channels() const
+	size_t Tensor::channels() const
 	{
 		return m_Channels;
 	}
 
-	template <typename T>
-	size_t Tensor<T>::rows() const
+	size_t Tensor::rows() const
 	{
 		return m_Rows;
 	}
 
-	template <typename T>
-	size_t Tensor<T>::cols() const
+	size_t Tensor::cols() const
 	{
 		return m_Cols;
 	}
 
-	template <typename T>
-	void Tensor<T>::fill(T val)
+	void Tensor::fill(float val)
 	{
 		std::fill(m_Data, m_Data + m_Size, val);
 	}
 
-	template <typename T>
-	void Tensor<T>::fill(size_t channel, const Tensor<T> &val)
+	void Tensor::fill(size_t channel, const Tensor &val)
 	{
 		MML_ASSERT(channel >= 0 && channel < m_Channels && val.m_Channels == 1 && val.m_Rows == m_Rows && val.m_Cols == m_Cols);
 
 		std::copy(val.m_Data, val.m_Data + val.m_Size, &m_Data[channel * (m_Rows * m_Cols)]);
 	}
 
-	template <typename T>
-	void Tensor<T>::resize(size_t channels, size_t rows, size_t cols)
+	void Tensor::resize(size_t channels, size_t rows, size_t cols)
 	{
 		size_t size = channels * rows * cols;
 		MML_ASSERT(size > 0, "Tensor cannot be zero-sized!");
@@ -241,7 +219,7 @@ namespace maxml
 
 		if (size != m_Size)
 		{
-			T *data = reinterpret_cast<T *>(_mm_malloc(size * sizeof(T), 32));
+			float *data = reinterpret_cast<float *>(_mm_malloc(size * sizeof(float), 32));
 			MML_ASSERT(data != nullptr, "Failed to allocate memory for tensor!");
 
 			std::copy(m_Data, m_Data + std::min(m_Size, size), data);
@@ -253,21 +231,20 @@ namespace maxml
 		}
 	}
 
-	template <typename T>
-	void Tensor<T>::transpose()
+	void Tensor::transpose()
 	{
-		T *data = reinterpret_cast<T *>(_mm_malloc(m_Size * sizeof(T), 32));
+		float *data = reinterpret_cast<float *>(_mm_malloc(m_Size * sizeof(float), 32));
 		MML_ASSERT(data != nullptr, "Failed to allocate memory for tensor!");
 
 		for (size_t c = 0; c < m_Channels; c++)
 		{
-			const T *a_c = &m_Data[c * (m_Rows * m_Cols)];
-			T *y_c = &data[c * (m_Rows * m_Cols)];
+			const float *a_c = &m_Data[c * (m_Rows * m_Cols)];
+			float *y_c = &data[c * (m_Rows * m_Cols)];
 
 			for (size_t k = 0; k < m_Rows * m_Cols; ++k)
 			{
-				int i = k / m_Cols;
-				int j = k % m_Cols;
+				size_t i = k / m_Cols;
+				size_t j = k % m_Cols;
 				y_c[k] = a_c[m_Rows * j + i];
 			}
 		}
@@ -278,8 +255,7 @@ namespace maxml
 		m_Data = data;
 	}
 
-	template <typename T>
-	std::string Tensor<T>::str() const
+	std::string Tensor::str() const
 	{
 		std::ostringstream ss;
 
@@ -357,26 +333,25 @@ namespace maxml
 		return ss.str();
 	}
 
-	template <typename T>
-	Tensor<T> Tensor<T>::resize(const Tensor<T> &a, size_t channels, size_t rows, size_t cols)
+	Tensor Tensor::resize(const Tensor &a, size_t channels, size_t rows, size_t cols)
 	{
 		size_t size = channels * rows * cols;
 		MML_ASSERT(size > 0, "Tensor cannot be zero-sized!");
 
-		T *data = reinterpret_cast<T *>(_mm_malloc(size * sizeof(T), 32));
+		float *data = reinterpret_cast<float *>(_mm_malloc(size * sizeof(float), 32));
 		MML_ASSERT(data != nullptr, "Failed to allocate memory for tensor!");
 
-		std::memset(data, 0, size * sizeof(T));
+		std::memset(data, 0, size * sizeof(float));
 		std::copy(a.m_Data, a.m_Data + std::min(a.m_Size, size), data);
 
-		return Tensor<T>(channels, rows, cols, data);
+		return Tensor(channels, rows, cols, data);
 	}
 
-	Tensor<float> Tensor<float>::add(const Tensor<float> &a, const Tensor<float> &b)
+	Tensor Tensor::add(const Tensor &a, const Tensor &b)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols);
 
-		Tensor<float> y(a.m_Channels, a.m_Rows, a.m_Cols);
+		Tensor y(a.m_Channels, a.m_Rows, a.m_Cols);
 
 		if (y.m_Size >= 8)
 		{
@@ -409,7 +384,7 @@ namespace maxml
 		return y;
 	}
 
-	void Tensor<float>::add(const Tensor<float> &a, const Tensor<float> &b, Tensor<float> &y)
+	void Tensor::add(const Tensor &a, const Tensor &b, Tensor &y)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols && y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -442,11 +417,11 @@ namespace maxml
 		}
 	}
 
-	Tensor<float> Tensor<float>::sub(const Tensor<float> &a, const Tensor<float> &b)
+	Tensor Tensor::sub(const Tensor &a, const Tensor &b)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols);
 
-		Tensor<float> y(a.m_Channels, a.m_Rows, a.m_Cols);
+		Tensor y(a.m_Channels, a.m_Rows, a.m_Cols);
 
 		if (y.m_Size >= 8)
 		{
@@ -478,7 +453,7 @@ namespace maxml
 		return y;
 	}
 
-	void Tensor<float>::sub(const Tensor<float> &a, const Tensor<float> &b, Tensor<float> &y)
+	void Tensor::sub(const Tensor &a, const Tensor &b, Tensor &y)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols && y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -511,9 +486,9 @@ namespace maxml
 		}
 	}
 
-	Tensor<float> Tensor<float>::mult(const Tensor<float> &a, float s)
+	Tensor Tensor::mult(const Tensor &a, float s)
 	{
-		Tensor<float> y(a.m_Channels, a.m_Rows, a.m_Cols);
+		Tensor y(a.m_Channels, a.m_Rows, a.m_Cols);
 
 		if (y.m_Size >= 8)
 		{
@@ -546,7 +521,7 @@ namespace maxml
 		return y;
 	}
 
-	Tensor<float> Tensor<float>::mult(const Tensor<float> &a, float s, Tensor<float> &y)
+	Tensor Tensor::mult(const Tensor &a, float s, Tensor &y)
 	{
 		MML_ASSERT(y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -581,11 +556,11 @@ namespace maxml
 		return y;
 	}
 
-	Tensor<float> Tensor<float>::mult(const Tensor<float> &a, const Tensor<float> &b)
+	Tensor Tensor::mult(const Tensor &a, const Tensor &b)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols);
 
-		Tensor<float> y(a.m_Channels, a.m_Rows, a.m_Cols);
+		Tensor y(a.m_Channels, a.m_Rows, a.m_Cols);
 
 		if (y.m_Size >= 8)
 		{
@@ -618,7 +593,7 @@ namespace maxml
 		return y;
 	}
 
-	void Tensor<float>::mult(const Tensor<float> &a, const Tensor<float> &b, Tensor<float> &y)
+	void Tensor::mult(const Tensor &a, const Tensor &b, Tensor &y)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols && y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -651,11 +626,11 @@ namespace maxml
 		}
 	}
 
-	Tensor<float> Tensor<float>::matMult(const Tensor &a, const Tensor &b)
+	Tensor Tensor::matMult(const Tensor &a, const Tensor &b)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Cols == b.m_Rows);
 
-		Tensor<float> y(a.m_Channels, a.m_Rows, b.m_Cols);
+		Tensor y(a.m_Channels, a.m_Rows, b.m_Cols);
 
 		float *b_ckj = reinterpret_cast<float *>(_mm_malloc(a.m_Cols * sizeof(float), 32));
 		MML_ASSERT(b_ckj != nullptr, "Failed to allocate memory for tensor!");
@@ -679,7 +654,7 @@ namespace maxml
 
 					float sum{};
 
-					if (false) // a.m_Cols >= 8)
+					if (a.m_Cols >= 8)
 					{
 						MML_ASSERT(((uintptr_t)(a.m_Data) & 31) == 0);
 						MML_ASSERT(((uintptr_t)(b.m_Data) & 31) == 0);
@@ -726,7 +701,7 @@ namespace maxml
 		return y;
 	}
 
-	void Tensor<float>::matMult(const Tensor &a, const Tensor &b, Tensor &y)
+	void Tensor::matMult(const Tensor &a, const Tensor &b, Tensor &y)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Cols == b.m_Rows);
 
@@ -752,7 +727,7 @@ namespace maxml
 
 					float sum{};
 
-					if (false) // a.m_Cols >= 8)
+					if (a.m_Cols >= 8)
 					{
 						MML_ASSERT(((uintptr_t)(a.m_Data) & 31) == 0);
 						MML_ASSERT(((uintptr_t)(b.m_Data) & 31) == 0);
@@ -762,7 +737,7 @@ namespace maxml
 							__m256 av = _mm256_load_ps(a_cik + k);
 							__m256 bv = _mm256_load_ps(b_ckj + k);
 							__m256 abv = _mm256_mul_ps(av, bv);
-							
+
 							__m128 hiQuadv = _mm256_extractf128_ps(abv, 1);
 							__m128 loQuadv = _mm256_castps256_ps128(abv);
 							__m128 sumQuadv = _mm_add_ps(loQuadv, hiQuadv);
@@ -797,20 +772,20 @@ namespace maxml
 		_mm_free(b_ckj);
 	}
 
-	template <typename T>
-	Tensor<T> Tensor<T>::transpose(const Tensor<T> &a)
+	
+	Tensor Tensor::transpose(const Tensor &a)
 	{
-		Tensor<T> y(a.m_Channels, a.m_Cols, a.m_Rows);
+		Tensor y(a.m_Channels, a.m_Cols, a.m_Rows);
 
 		for (size_t c = 0; c < y.m_Channels; c++)
 		{
-			const T *a_c = &a.m_Data[c * (a.m_Rows * a.m_Cols)];
-			T *y_c = &y.m_Data[c * (y.m_Rows * y.m_Cols)];
+			const float *a_c = &a.m_Data[c * (a.m_Rows * a.m_Cols)];
+			float *y_c = &y.m_Data[c * (y.m_Rows * y.m_Cols)];
 
 			for (size_t k = 0; k < y.m_Rows * y.m_Cols; ++k)
 			{
-				int i = k / y.m_Cols;
-				int j = k % y.m_Cols;
+				size_t i = k / y.m_Cols;
+				size_t j = k % y.m_Cols;
 				y_c[k] = a_c[y.m_Rows * j + i];
 			}
 		}
@@ -818,29 +793,29 @@ namespace maxml
 		return y;
 	}
 
-	template <typename T>
-	void Tensor<T>::transpose(const Tensor<T> &a, Tensor<T> &y)
+	
+	void Tensor::transpose(const Tensor &a, Tensor &y)
 	{
 		MML_ASSERT(a.m_Channels == y.m_Channels && a.m_Rows == y.m_Cols && a.m_Cols == y.m_Rows);
 
 		for (size_t c = 0; c < y.m_Channels; c++)
 		{
-			const T *a_c = &a.m_Data[c * (a.m_Rows * a.m_Cols)];
-			T *y_c = &y.m_Data[c * (y.m_Rows * y.m_Cols)];
+			const float *a_c = &a.m_Data[c * (a.m_Rows * a.m_Cols)];
+			float *y_c = &y.m_Data[c * (y.m_Rows * y.m_Cols)];
 
 			for (size_t k = 0; k < y.m_Rows * y.m_Cols; ++k)
 			{
-				int i = k / y.m_Cols;
-				int j = k % y.m_Cols;
+				size_t i = k / y.m_Cols;
+				size_t j = k % y.m_Cols;
 				y_c[k] = a_c[y.m_Rows * j + i];
 			}
 		}
 	}
 
-	template <typename T>
-	T Tensor<T>::sum(const Tensor<T> &a)
+	
+	float Tensor::sum(const Tensor &a)
 	{
-		T sum{0};
+		float sum{0};
 
 		for (size_t i = 0; i < a.m_Size; i++)
 		{
@@ -850,10 +825,10 @@ namespace maxml
 		return sum;
 	}
 
-	template <typename T>
-	T Tensor<T>::sumWith(const Tensor<T> &a, std::function<T(T)> f)
+	
+	float Tensor::sumWith(const Tensor &a, std::function<float(float)> f)
 	{
-		T sum{0};
+		float sum{0};
 
 		for (size_t i = 0; i < a.m_Size; i++)
 		{
@@ -863,10 +838,10 @@ namespace maxml
 		return sum;
 	}
 
-	template <typename T>
-	Tensor<T> Tensor<T>::mapWith(const Tensor<T> &a, std::function<T(T)> f)
+	
+	Tensor Tensor::mapWith(const Tensor &a, std::function<float(float)> f)
 	{
-		Tensor<T> y(a.m_Channels, a.m_Rows, a.m_Cols);
+		Tensor y(a.m_Channels, a.m_Rows, a.m_Cols);
 
 		for (size_t i = 0; i < y.m_Size; i++)
 		{
@@ -876,8 +851,8 @@ namespace maxml
 		return y;
 	}
 
-	template <typename T>
-	void Tensor<T>::mapWith(const Tensor<T> &a, std::function<T(T)> f, Tensor<T> &y)
+	
+	void Tensor::mapWith(const Tensor &a, std::function<float(float)> f, Tensor &y)
 	{
 		MML_ASSERT(a.m_Size == y.m_Size);
 
@@ -887,8 +862,8 @@ namespace maxml
 		}
 	}
 
-	template <typename T>
-	void Tensor<T>::zipWith(const Tensor<T> &a, const Tensor<T> &b, std::function<T(T, T)> f, Tensor<T> &y)
+	
+	void Tensor::zipWith(const Tensor &a, const Tensor &b, std::function<float(float, float)> f, Tensor &y)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols && y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -898,7 +873,7 @@ namespace maxml
 		}
 	}
 
-	void Tensor<float>::aMinusXMultB(const Tensor<float> &a, const Tensor<float> &b, float x, Tensor<float> &y)
+	void Tensor::aMinusXMultB(const Tensor &a, const Tensor &b, float x, Tensor &y)
 	{
 		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols && y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -934,7 +909,7 @@ namespace maxml
 		}
 	}
 
-	void Tensor<float>::fastSig(const Tensor<float> &a, Tensor<float> &y)
+	void Tensor::fastSig(const Tensor &a, Tensor &y)
 	{
 		MML_ASSERT(y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -973,7 +948,7 @@ namespace maxml
 		}
 	}
 
-	void Tensor<float>::fastSigDeriv(const Tensor &a, Tensor &y)
+	void Tensor::fastSigDeriv(const Tensor &a, Tensor &y)
 	{
 		MML_ASSERT(y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -993,7 +968,7 @@ namespace maxml
 				_mm256_store_ps(y.m_Data + i, resultv);
 			}
 
-			for(size_t k = y.m_Size - 7; k < y.m_Size; k++)
+			for (size_t k = y.m_Size - 7; k < y.m_Size; k++)
 			{
 				y.m_Data[k] = a.m_Data[k] * (1.0f - a.m_Data[k]);
 			}
@@ -1007,7 +982,7 @@ namespace maxml
 		}
 	}
 
-	void Tensor<float>::fastRelu(const Tensor<float> &a, Tensor<float> &y)
+	void Tensor::fastRelu(const Tensor &a, Tensor &y)
 	{
 		MML_ASSERT(y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -1040,7 +1015,7 @@ namespace maxml
 		}
 	}
 
-	void Tensor<float>::fastReluDeriv(const Tensor &a, Tensor &y)
+	void Tensor::fastReluDeriv(const Tensor &a, Tensor &y)
 	{
 		MML_ASSERT(y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
 
@@ -1050,14 +1025,10 @@ namespace maxml
 		}
 	}
 
-	template <typename T>
-	void Tensor<T>::copy(const Tensor<T> &a, Tensor<T> &y)
+	
+	void Tensor::copy(const Tensor &a, Tensor &y)
 	{
 		MML_ASSERT(a.m_Size == y.m_Size);
 		std::copy(a.m_Data, a.m_Data + a.m_Size, y.m_Data);
 	}
-
-	template class Tensor<double>;
-	template class Tensor<float>;
-	template class Tensor<int>;
 }

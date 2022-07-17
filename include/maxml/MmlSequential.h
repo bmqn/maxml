@@ -158,24 +158,24 @@ namespace maxml
 		Sequential &operator=(const Sequential &other) = delete;
 		Sequential &operator=(const Sequential &&other) = delete;
 
-		const FTensor &feedForward(const FTensor &input);
-		float feedBackward(const FTensor &expected);
+		const Tensor &feedForward(const Tensor &input);
+		float feedBackward(const Tensor &expected);
 
 	private:
-		const FTensor &dataInputAt(size_t index) const;
-		const FTensor &dataOutputAt(size_t index) const;
-		const FTensor &deltaInputAt(size_t index) const;
-		const FTensor &deltaOutputAt(size_t index) const;
+		const Tensor &dataInputAt(size_t index) const;
+		const Tensor &dataOutputAt(size_t index) const;
+		const Tensor &deltaInputAt(size_t index) const;
+		const Tensor &deltaOutputAt(size_t index) const;
 
-		FTensor &dataInputAt(size_t index);
-		FTensor &dataOutputAt(size_t index);
-		FTensor &deltaInputAt(size_t index);
-		FTensor &deltaOutputAt(size_t index);
+		Tensor &dataInputAt(size_t index);
+		Tensor &dataOutputAt(size_t index);
+		Tensor &deltaInputAt(size_t index);
+		Tensor &deltaOutputAt(size_t index);
 
 	private:
 		// Each layer has a pair of tensors for input and output, respectively
-		std::vector<std::pair<std::shared_ptr<FTensor>, std::shared_ptr<FTensor>>> m_Data;
-		std::vector<std::pair<std::shared_ptr<FTensor>, std::shared_ptr<FTensor>>> m_Delta;
+		std::vector<std::pair<std::shared_ptr<Tensor>, std::shared_ptr<Tensor>>> m_Data;
+		std::vector<std::pair<std::shared_ptr<Tensor>, std::shared_ptr<Tensor>>> m_Delta;
 		std::vector<std::shared_ptr<Layer>> m_Layers;
 
 		// TODO: This should probably be specified with an 'output' layer

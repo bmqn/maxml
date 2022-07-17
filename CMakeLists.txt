@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.1.0)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(MML_ROOT_DIR		${CMAKE_CURRENT_SOURCE_DIR})
+set(MML_INC_DIR			${MML_ROOT_DIR}/include)
+set(MML_SRC_DIR			${MML_ROOT_DIR}/src)
+set(MML_RES_DIR			${MML_ROOT_DIR}/res)
 
 project(maxml)
-set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+#--------------------------------------------------------------------------------------------------
+#	Configuration
+#--------------------------------------------------------------------------------------------------
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 if(MSVC)
 add_compile_options(
@@ -24,47 +31,59 @@ add_link_options(
 endif()
 
 
-# --- Sources ---
-set(INC_FILES
-	"${ROOT_DIR}/include/maxml/MmlTensor.h"
-	"${ROOT_DIR}/include/maxml/MmlSequential.h"
+#--------------------------------------------------------------------------------------------------
+#	Sources
+#--------------------------------------------------------------------------------------------------
+set(MML_HSP
+	"${MML_INC_DIR}/maxml/MmlTensor.h"
+	"${MML_INC_DIR}/maxml/MmlSequential.h"
 )
 
-set(SRC_FILES
-	"${ROOT_DIR}/src/MmlConfig.h"
-	"${ROOT_DIR}/src/MmlLog.h"
-	"${ROOT_DIR}/src/MmlLayer.h"
-	"${ROOT_DIR}/src/MmlLayer.cpp"
-	"${ROOT_DIR}/src/MmlSequential.cpp"
-	"${ROOT_DIR}/src/MmlTensor.cpp"
-	"${ROOT_DIR}/src/MmlActivations.h"
+set(MML_SRC
+	"${MML_INC_DIR}/maxml/MmlTensor.h"
+	"${MML_INC_DIR}/maxml/MmlSequential.h"
+
+	"${MML_SRC_DIR}/MmlConfig.h"
+	"${MML_SRC_DIR}/MmlLog.h"
+	"${MML_SRC_DIR}/MmlLayer.h"
+	"${MML_SRC_DIR}/MmlLayer.cpp"
+	"${MML_SRC_DIR}/MmlSequential.cpp"
+	"${MML_SRC_DIR}/MmlTensor.cpp"
+	"${MML_SRC_DIR}/MmlActivations.h"
 )
 
-source_group("Include" FILES ${INC_FILES})
-source_group("Source"  FILES ${SRC_FILES})
+source_group("Include" FILES ${MML_HSP})
+source_group("Source"  FILES ${MML_SRC})
 
 
-# --- Library ---
+#--------------------------------------------------------------------------------------------------
+#	Build
+#--------------------------------------------------------------------------------------------------
 add_library(
 	maxml STATIC
-	${INC_FILES}
-	${SRC_FILES}
+	${MML_HSP}
+	${MML_SRC}
 )
 
 target_include_directories(
 	maxml
-	PUBLIC  "${ROOT_DIR}/include"
-	PRIVATE "${ROOT_DIR}/src"
+	PUBLIC  ${MML_INC_DIR}
+	PRIVATE ${MML_SRC_DIR}
 )
 
-# --- Example ---
 add_executable(
 	example
-	"${ROOT_DIR}/example/Main.cpp"
-	"${ROOT_DIR}/example/MnistLoader.h"
+	"${MML_ROOT_DIR}/example/Main.cpp"
 )
 
 target_link_libraries(
 	example
 	PUBLIC maxml
+)
+
+#--------------------------------------------------------------------------------------------------
+#	Resources
+#--------------------------------------------------------------------------------------------------
+add_custom_target(maxml_CopyResources ALL
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${MML_RES_DIR} $<TARGET_FILE_DIR:maxml>
 )
