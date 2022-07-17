@@ -80,12 +80,8 @@ namespace maxml
 		static void zipWith(const Tensor &a, const Tensor &b, std::function<float(float, float)> f, Tensor &y);
 
 		static void aMinusXMultB(const Tensor &a, const Tensor &b, float x, Tensor &y);
-
 		static void fastSig(const Tensor &a, Tensor &y);
-		static void fastSigDeriv(const Tensor &a, Tensor &y);
-
 		static void fastRelu(const Tensor &a, Tensor &y);
-		static void fastReluDeriv(const Tensor &a, Tensor &y);
 
 		static void copy(const Tensor &a, Tensor &y);
 	};

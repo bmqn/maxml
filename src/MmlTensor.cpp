@@ -918,15 +918,16 @@ namespace maxml
 			MML_ASSERT(((uintptr_t)(a.m_Data) & 31) == 0);
 			MML_ASSERT(((uintptr_t)(y.m_Data) & 31) == 0);
 
+			static const __m256 zerov = _mm256_set1_ps(0.0f);
 			static const __m256 onev = _mm256_set1_ps(1.0f);
 			static const __m256 halfv = _mm256_set1_ps(0.5f);
-			static const __m256 sign_mask = _mm256_set1_ps(-0.f);
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
 				__m256 av = _mm256_load_ps(a.m_Data + i);
 				__m256 halfav = _mm256_mul_ps(av, halfv);
-				__m256 absav = _mm256_andnot_ps(sign_mask, av);
+				__m256 zerominusav = _mm256_sub_ps(zerov, av);
+				__m256 absav = _mm256_max_ps(av, zerominusav);
 				__m256 oneplusabsav = _mm256_add_ps(onev, absav);
 				__m256 quotientv = _mm256_div_ps(halfav, oneplusabsav);
 				__m256 resultv = _mm256_add_ps(quotientv, halfv);
@@ -944,40 +945,6 @@ namespace maxml
 			for (size_t i = 0; i < y.m_Size; ++i)
 			{
 				y.m_Data[i] = (0.5f * a.m_Data[i]) / (1 + std::abs(a.m_Data[i])) + 0.5f;
-			}
-		}
-	}
-
-	void Tensor::fastSigDeriv(const Tensor &a, Tensor &y)
-	{
-		MML_ASSERT(y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
-
-		if (y.m_Size >= 8)
-		{
-			MML_ASSERT(((uintptr_t)(a.m_Data) & 31) == 0);
-			MML_ASSERT(((uintptr_t)(y.m_Data) & 31) == 0);
-
-			static const __m256 onev = _mm256_set1_ps(1.0f);
-
-			for (size_t i = 0; i < y.m_Size - 7; i += 8)
-			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 oneminusav = _mm256_sub_ps(onev, av);
-				__m256 resultv = _mm256_mul_ps(av, oneminusav);
-
-				_mm256_store_ps(y.m_Data + i, resultv);
-			}
-
-			for (size_t k = y.m_Size - 7; k < y.m_Size; k++)
-			{
-				y.m_Data[k] = a.m_Data[k] * (1.0f - a.m_Data[k]);
-			}
-		}
-		else
-		{
-			for (size_t i = 0; i < y.m_Size; ++i)
-			{
-				y.m_Data[i] = a.m_Data[i] * (1.0f - a.m_Data[i]);
 			}
 		}
 	}
@@ -1014,17 +981,6 @@ namespace maxml
 			}
 		}
 	}
-
-	void Tensor::fastReluDeriv(const Tensor &a, Tensor &y)
-	{
-		MML_ASSERT(y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
-
-		for (size_t k = 0; k < a.m_Size; k++)
-		{
-			y.m_Data[k] = a.m_Data[k] < 0.0f ? 0.0f : 1.0f;
-		}
-	}
-
 	
 	void Tensor::copy(const Tensor &a, Tensor &y)
 	{

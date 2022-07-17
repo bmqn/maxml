@@ -7,7 +7,10 @@
 namespace maxml
 {
 	FullyConLayer::FullyConLayer(Tensor &&weights, Tensor &&biases)
-		: DeltaWeights(weights.channels(), weights.rows(), weights.cols()), DeltaBiases(weights.channels(), weights.rows(), 1), Weights(std::forward<Tensor>(weights)), Biases(std::forward<Tensor>(biases))
+		: DeltaWeights(weights.channels(), weights.rows(), weights.cols())
+		, DeltaBiases(weights.channels(), weights.rows(), 1)
+		, Weights(std::forward<Tensor>(weights))
+		, Biases(std::forward<Tensor>(biases))
 	{
 	}
 
@@ -31,7 +34,13 @@ namespace maxml
 	}
 
 	ConvLayer::ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel)
-		: KernelChannels(kernel.channels()), KernelRows(kernel.rows()), KernelCols(kernel.cols()), KernelWindowed(inChannels, kernel.channels(), kernel.rows() * kernel.cols()), InputWindowed(inChannels, kernel.rows() * kernel.cols(), outRows * outCols), DeltaKernelWindowed(inChannels, kernel.channels(), kernel.rows() * kernel.cols()), DeltaInputWindowed(inChannels, kernel.rows() * kernel.cols(), outRows * outCols)
+		: KernelChannels(kernel.channels())
+		, KernelRows(kernel.rows())
+		, KernelCols(kernel.cols())
+		, KernelWindowed(inChannels, kernel.channels(), kernel.rows() * kernel.cols())
+		, InputWindowed(inChannels, kernel.rows() * kernel.cols(), outRows * outCols)
+		, DeltaKernelWindowed(inChannels, kernel.channels(), kernel.rows() * kernel.cols())
+		, DeltaInputWindowed(inChannels, kernel.rows() * kernel.cols(), outRows * outCols)
 	{
 		for (size_t iChan = 0; iChan < inChannels; ++iChan)
 		{
@@ -91,7 +100,8 @@ namespace maxml
 	}
 
 	MaxPoolLayer::MaxPoolLayer(size_t tileWidth, size_t tileHeight)
-		: TileWidth(tileWidth), TileHeight(tileHeight)
+		: TileWidth(tileWidth)
+		, TileHeight(tileHeight)
 	{
 	}
 
@@ -177,10 +187,9 @@ namespace maxml
 			Tensor::fastSig(input, output);
 			break;
 		case ActivationFunc::Tanh:
-			Tensor::mapWith(
-				input, [](float x)
-				{ return tanh(x); },
-				output);
+			Tensor::mapWith(input, [](float x) {
+				return tanh(x);
+			}, output);
 			break;
 		case ActivationFunc::ReLU:
 			Tensor::fastRelu(input, output);
@@ -193,18 +202,19 @@ namespace maxml
 		switch (Activation)
 		{
 		case ActivationFunc::Sigmoid:
-			Tensor::fastSigDeriv(output, inputDelta);
-			Tensor::mult(inputDelta, outputDelta, inputDelta);
+			Tensor::zipWith(output, outputDelta, [](float x, float y) {
+				return (x * (1.0f - x)) * y;
+			}, inputDelta);
 			break;
 		case ActivationFunc::Tanh:
-			Tensor::zipWith(
-				input, outputDelta, [](float x, float y)
-				{ return (tanhPrime(x)) * y; },
-				inputDelta);
+			Tensor::zipWith(input, outputDelta, [](float x, float y) {
+				return (tanhPrime(x)) * y;
+			}, inputDelta);
 			break;
 		case ActivationFunc::ReLU:
-			Tensor::fastReluDeriv(input, inputDelta);
-			Tensor::mult(inputDelta, outputDelta, inputDelta);
+			Tensor::zipWith(input, outputDelta, [](float x, float y) {
+				return (reluPrime(x)) * y;
+			}, inputDelta);
 			break;
 		}
 	}

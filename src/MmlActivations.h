@@ -6,35 +6,35 @@ namespace maxml
 {
 	// TODO: Optimise these functions.
 
-	static double sig(double x)
+	static float sig(float x)
 	{
-		return 1.0 / (1.0 + std::exp(-x));
+		return 1.0f / (1.0f + std::exp(-x));
 	}
 
-	static double sigPrime(double x)
+	static float sigPrime(float x)
 	{
-		return sig(x) * (1.0 - sig(x));
+		return sig(x) * (1.0f - sig(x));
 	}
 
-	static double relu(double x)
+	static float relu(float x)
 	{
-		return x < 0.0 ? 0.0 : x;
+		return x < 0.0f ? 0.0f : x;
 	}
 
-	static double reluPrime(double x)
+	static float reluPrime(float x)
 	{
-		return x < 0.0 ? 0.0 : 1.0;
+		return x < 0.0f ? 0.0f : 1.0f;
 	}
 
-	static double tanh(double x)
+	static float tanh(float x)
 	{
 		return std::tanh(x);
 	}
 
-	static double tanhPrime(double x)
+	static float tanhPrime(float x)
 	{
-		double coshx = std::cosh(x);
+		float coshx = std::cosh(x);
 
-		return 1.0 / (coshx * coshx);
+		return 1.0f / (coshx * coshx);
 	}
 }
