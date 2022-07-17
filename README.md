@@ -25,6 +25,8 @@ seqDesc.LayerDescs = {
 	maxml::makeFullCon(8, maxml::ActivationFunc::Tanh),
 	maxml::makeFullCon(1, maxml::ActivationFunc::None)
 };
+
+maxml::Sequential seq(seqDesc);
 ```
 
 Next we train the model
