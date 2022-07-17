@@ -16,42 +16,28 @@ Say we want to fit a sequential neural network model to the following function
 First we create the description of the desired sequential network to create a model
 
 ```C++
-maxml::InputLayerDesc inpLayerDesc;
-inpLayerDesc.Channels = 1;
-inpLayerDesc.Rows = 1;
-inpLayerDesc.Cols = 1;
-
-maxml::FullyConnectedLayerDesc fc1LayerDesc;
-fc1LayerDesc.NumOutputs = 16;
-fc1LayerDesc.ActivFunc = maxml::ActivationFunc::Tanh;
-
-maxml::FullyConnectedLayerDesc fc2LayerDesc;
-fc2LayerDesc.NumOutputs = 8;
-fc2LayerDesc.ActivFunc = maxml::ActivationFunc::Tanh;
-
-maxml::FullyConnectedLayerDesc fc3LayerDesc;
-fc3LayerDesc.NumOutputs = 1;
-fc3LayerDesc.ActivFunc = maxml::ActivationFunc::None;
-
 maxml::SequentialDesc seqDesc;
 seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-seqDesc.LearningRate = 0.1;
-seqDesc.LayerDescs = { inpLayerDesc, fc1LayerDesc, fc2LayerDesc, fc3LayerDesc };
-
-maxml::Sequential seq(seqDesc);
+seqDesc.LearningRate = 0.1f;
+seqDesc.LayerDescs = {
+	maxml::makeInput(1, 1, 1),
+	maxml::makeFullCon(16, maxml::ActivationFunc::Tanh),
+	maxml::makeFullCon(8, maxml::ActivationFunc::Tanh),
+	maxml::makeFullCon(1, maxml::ActivationFunc::None)
+};
 ```
 
 Next we train the model
 
 ```C++
-for (int i = 0; i < numIterations; i++)
+for (int i = 0; i < kNumIterations; i++)
 {
   	int choice = rand() % data.size();
 
-	const maxml::DTensor& inp = data[choice].first;
-	const maxml::DTensor& exp = data[choice].second;
+	const maxml::DTensor &inp = data[choice].first;
+	const maxml::DTensor &exp = data[choice].second;
 
-	const maxml::DTensor& out = seq.feedForward(inp);
+	const maxml::DTensor &out = seq.feedForward(inp);
 	double err = seq.feedBackward(exp);
 }
 ```
