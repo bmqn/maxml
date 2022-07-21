@@ -116,7 +116,6 @@ namespace maxml
 					m_Layers.push_back(std::make_shared<FullyConLayer>(std::move(weights), std::move(biases)));
 				}
 
-				if (activFunc != ActivationFunc::None)
 				{
 					std::shared_ptr<Tensor> input = m_Data.back().second;
 					std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
@@ -174,7 +173,6 @@ namespace maxml
 					m_Layers.push_back(std::make_shared<ConvLayer>(inChannels, outRows, outCols, kernel));
 				}
 
-				if (activFunc != ActivationFunc::None)
 				{
 					std::shared_ptr<Tensor> input = m_Data.back().second;
 					std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
@@ -268,38 +266,41 @@ namespace maxml
 
 	float Sequential::feedBackward(const Tensor &expected)
 	{
+		size_t lastLayerIdx = m_Layers.size() - 1;
+		size_t numOutputs = deltaOutputAt(lastLayerIdx).rows();
+		float error = std::numeric_limits<float>::infinity();
+
 		if (m_ObjectiveFunc == LossFunc::MSE)
 		{
-			size_t lastLayerIdx = m_Layers.size() - 1;
-			size_t numOututs = deltaOutputAt(lastLayerIdx).rows();
-
-			Tensor::sub(
-				dataOutputAt(lastLayerIdx), expected,
-				deltaOutputAt(lastLayerIdx));
-
-			for (auto it = m_Layers.rbegin(); it != m_Layers.rend(); ++it)
-			{
-				std::shared_ptr<Layer> currentLayer = *it;
-				size_t currIdx = static_cast<size_t>(m_Layers.rend() - it - 1);
-
-				currentLayer->backward(
-					dataInputAt(currIdx),
-					dataOutputAt(currIdx),
-					deltaInputAt(currIdx),
-					deltaOutputAt(currIdx));
-				currentLayer->update(m_LearningRate);
-			}
-
-			float error = Tensor::sumWith(deltaOutputAt(lastLayerIdx), [](float x) {
+			Tensor::sub(dataOutputAt(lastLayerIdx), expected, deltaOutputAt(lastLayerIdx));
+			error = Tensor::sumWith(deltaOutputAt(lastLayerIdx), [](float x) {
 				return x * x;
-			}) * (1.0f / static_cast<float>(numOututs));
-
-			return error;
+			}) * (1.0f / static_cast<float>(numOutputs));
 		}
-		else
+		else if (m_ObjectiveFunc == LossFunc::CrossEntropy)
 		{
-			return std::numeric_limits<float>::infinity();
+			Tensor::zipWith(dataOutputAt(lastLayerIdx), expected, [](float x, float y) {
+				return -y / x;
+			}, deltaOutputAt(lastLayerIdx));
+			error = -Tensor::sumWith(dataOutputAt(lastLayerIdx), expected, [](float x, float y) {
+				return y * std::log(x);
+			});			
 		}
+
+		for (auto it = m_Layers.rbegin(); it != m_Layers.rend(); ++it)
+		{
+			std::shared_ptr<Layer> currentLayer = *it;
+			size_t currIdx = static_cast<size_t>(m_Layers.rend() - it - 1);
+
+			currentLayer->backward(
+				dataInputAt(currIdx),
+				dataOutputAt(currIdx),
+				deltaInputAt(currIdx),
+				deltaOutputAt(currIdx));
+			currentLayer->update(m_LearningRate);
+		}
+
+		return error;
 	}
 
 	const Tensor &Sequential::dataInputAt(size_t index) const

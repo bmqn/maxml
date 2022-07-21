@@ -181,6 +181,9 @@ namespace maxml
 	{
 		switch (Activation)
 		{
+		case ActivationFunc::None:
+			Tensor::copy(input, output);
+			break;
 		case ActivationFunc::Sigmoid:
 			Tensor::fastSig(input, output);
 			break;
@@ -208,6 +211,9 @@ namespace maxml
 	{
 		switch (Activation)
 		{
+		case ActivationFunc::None:
+			Tensor::copy(outputDelta, inputDelta);
+			break;
 		case ActivationFunc::Sigmoid:
 			Tensor::zipWith(output, outputDelta, [](float x, float y) {
 				return (x * (1.0f - x)) * y;

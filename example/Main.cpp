@@ -204,15 +204,14 @@ static void MnistExample()
 	srand(static_cast<unsigned int>(time(nullptr)));
 
 	maxml::SequentialDesc seqDesc;
-	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.01f;
+	seqDesc.ObjectiveFunc = maxml::LossFunc::CrossEntropy;
+	seqDesc.LearningRate = 0.001f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 28, 28),
-		maxml::makeConv(16, 7, 7, maxml::ActivationFunc::ReLU),
+		maxml::makeConv(16, 5, 5, maxml::ActivationFunc::ReLU),
 		maxml::makeFlatten(),
-		maxml::makeFullCon(512, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(128, maxml::ActivationFunc::ReLU),
-		maxml::makeFullCon(32, maxml::ActivationFunc::ReLU),
+		maxml::makeFullCon(64, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(10, maxml::ActivationFunc::Softmax)
 	};
 

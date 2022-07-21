@@ -76,7 +76,8 @@ namespace maxml
 
 	enum class LossFunc
 	{
-		MSE = 0
+		MSE = 0,
+		CrossEntropy = 1
 	};
 
 	enum class LayerKind
