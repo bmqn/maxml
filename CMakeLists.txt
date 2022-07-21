@@ -81,6 +81,10 @@ target_link_libraries(
 	PUBLIC maxml
 )
 
+set_target_properties(example PROPERTIES
+	VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:example>
+)
+
 #--------------------------------------------------------------------------------------------------
 #	Resources
 #--------------------------------------------------------------------------------------------------

@@ -64,7 +64,8 @@ namespace maxml
 		None = -1,
 		Sigmoid = 0,
 		Tanh = 1,
-		ReLU = 2
+		ReLU = 2,
+		Softmax = 3
 	};
 
 	enum class PoolingFunc

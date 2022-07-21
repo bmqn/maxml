@@ -136,10 +136,10 @@ static void RegressionExample()
 
 	maxml::SequentialDesc seqDesc;
 	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.1f;
+	seqDesc.LearningRate = 0.01f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 1, 1),
-		maxml::makeFullCon(16, maxml::ActivationFunc::Tanh),
+		maxml::makeFullCon(16, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(8, maxml::ActivationFunc::Tanh),
 		maxml::makeFullCon(1, maxml::ActivationFunc::None)
 	};
@@ -205,15 +205,15 @@ static void MnistExample()
 
 	maxml::SequentialDesc seqDesc;
 	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.05f;
+	seqDesc.LearningRate = 0.01f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 28, 28),
-		maxml::makeConv(16, 3, 3, maxml::ActivationFunc::ReLU),
-		maxml::makePool(2, 2, maxml::PoolingFunc::Max),
+		maxml::makeConv(16, 7, 7, maxml::ActivationFunc::ReLU),
 		maxml::makeFlatten(),
-		maxml::makeFullCon(64, maxml::ActivationFunc::ReLU),
+		maxml::makeFullCon(512, maxml::ActivationFunc::ReLU),
+		maxml::makeFullCon(128, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(32, maxml::ActivationFunc::ReLU),
-		maxml::makeFullCon(10, maxml::ActivationFunc::Sigmoid),
+		maxml::makeFullCon(10, maxml::ActivationFunc::Softmax)
 	};
 
 	maxml::Sequential seq(seqDesc);
@@ -252,7 +252,7 @@ static void MnistExample()
 		delete[] trainImages;
 		delete[] trainLabels;
 
-		static constexpr size_t kNumIterations = 250000;
+		static constexpr size_t kNumIterations = 10000;
 		static constexpr size_t kErrHistCount = 1000;
 		std::vector<float> errHist;
 		errHist.reserve(kNumIterations);
@@ -262,7 +262,7 @@ static void MnistExample()
 		{
 			int choice = rand() % numTrainImages;
 
-			seq.feedForward(trainData[choice].first);
+			auto out = seq.feedForward(trainData[choice].first);
 			errHist.push_back(seq.feedBackward(trainData[choice].second));
 
 			size_t cumErrCount = errHist.size() < kErrHistCount ? errHist.size() : kErrHistCount;

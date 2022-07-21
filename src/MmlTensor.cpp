@@ -146,20 +146,24 @@ namespace maxml
 		return *this;
 	}
 
+	float &Tensor::operator()(size_t channel)
+	{
+		return at(channel);
+	}
+
+	const float &Tensor::operator()(size_t channel) const
+	{
+		return at(channel);
+	}
+
 	float &Tensor::operator()(size_t channel, size_t row, size_t col)
 	{
-		MML_ASSERT(channel >= 0 && channel < m_Channels && row >= 0 && row < m_Rows && col >= 0 && col < m_Cols);
-
-		size_t index = channel * (m_Rows * m_Cols) + row * m_Cols + col;
-		return m_Data[index];
+		return at(channel, row, col);
 	}
 
 	const float &Tensor::operator()(size_t channel, size_t row, size_t col) const
 	{
-		MML_ASSERT(channel >= 0 && channel < m_Channels && row >= 0 && row < m_Rows && col >= 0 && col < m_Cols);
-
-		size_t index = channel * (m_Rows * m_Cols) + row * m_Cols + col;
-		return m_Data[index];
+		return at(channel, row, col);
 	}
 
 	float &Tensor::operator[](size_t index)
@@ -199,13 +203,6 @@ namespace maxml
 	void Tensor::fill(float val)
 	{
 		std::fill(m_Data, m_Data + m_Size, val);
-	}
-
-	void Tensor::fill(size_t channel, const Tensor &val)
-	{
-		MML_ASSERT(channel >= 0 && channel < m_Channels && val.m_Channels == 1 && val.m_Rows == m_Rows && val.m_Cols == m_Cols);
-
-		std::copy(val.m_Data, val.m_Data + val.m_Size, &m_Data[channel * (m_Rows * m_Cols)]);
 	}
 
 	void Tensor::resize(size_t channels, size_t rows, size_t cols)
@@ -253,6 +250,30 @@ namespace maxml
 
 		std::swap(m_Rows, m_Cols);
 		m_Data = data;
+	}
+
+	float &Tensor::at(size_t channel)
+	{
+		MML_ASSERT(channel >= 0 && channel < m_Channels);
+		return m_Data[channel * (m_Rows * m_Cols)];
+	}
+
+	const float &Tensor::at(size_t channel) const
+	{
+		MML_ASSERT(channel >= 0 && channel < m_Channels);
+		return m_Data[channel * (m_Rows * m_Cols)];
+	}
+
+	float &Tensor::at(size_t channel, size_t row, size_t col)
+	{
+		MML_ASSERT(channel >= 0 && channel < m_Channels && row >= 0 && row < m_Rows && col >= 0 && col < m_Cols);
+		return m_Data[channel * (m_Rows * m_Cols) + row * m_Cols + col];
+	}
+
+	const float &Tensor::at(size_t channel, size_t row, size_t col) const
+	{
+		MML_ASSERT(channel >= 0 && channel < m_Channels && row >= 0 && row < m_Rows && col >= 0 && col < m_Cols);
+		return m_Data[channel * (m_Rows * m_Cols) + row * m_Cols + col];
 	}
 
 	std::string Tensor::str() const
@@ -812,7 +833,20 @@ namespace maxml
 		}
 	}
 
-	
+	float Tensor::max(const Tensor &a)
+	{
+		float max = -std::numeric_limits<float>::infinity();
+		for (size_t i = 0; i < a.m_Size; ++i)
+		{
+			if (a.m_Data[i] > max)
+			{
+				max = a.m_Data[i];
+			}
+		}
+
+		return max;
+	}
+
 	float Tensor::sum(const Tensor &a)
 	{
 		float sum{0};
@@ -833,6 +867,19 @@ namespace maxml
 		for (size_t i = 0; i < a.m_Size; i++)
 		{
 			sum += f(a.m_Data[i]);
+		}
+
+		return sum;
+	}
+
+	float Tensor::sumWith(const Tensor &a, const Tensor &b, std::function<float(float, float)> f)
+	{
+		MML_ASSERT(a.m_Size == b.m_Size);
+		
+		float sum{0};
+		for (size_t i = 0; i < a.m_Size; i++)
+		{
+			sum += f(a.m_Data[i], b.m_Data[i]);
 		}
 
 		return sum;
@@ -870,6 +917,42 @@ namespace maxml
 		for (size_t i = 0; i < y.m_Size; ++i)
 		{
 			y.m_Data[i] = f(a.m_Data[i], b.m_Data[i]);
+		}
+	}
+
+	void Tensor::aAddXMultB(const Tensor &a, const Tensor &b, float x, Tensor &y)
+	{
+		MML_ASSERT(a.m_Channels == b.m_Channels && a.m_Rows == b.m_Rows && a.m_Cols == b.m_Cols && y.m_Channels == a.m_Channels && y.m_Rows == a.m_Rows && y.m_Cols == a.m_Cols);
+
+		if (y.m_Size >= 8)
+		{
+			MML_ASSERT(((uintptr_t)(a.m_Data) & 31) == 0);
+			MML_ASSERT(((uintptr_t)(b.m_Data) & 31) == 0);
+			MML_ASSERT(((uintptr_t)(y.m_Data) & 31) == 0);
+
+			__m256 xv = _mm256_set1_ps(x);
+
+			for (size_t i = 0; i < y.m_Size - 7; i += 8)
+			{
+				__m256 av = _mm256_load_ps(a.m_Data + i);
+				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 xbv = _mm256_mul_ps(xv, bv);
+				__m256 resultv = _mm256_add_ps(av, xbv);
+
+				_mm256_store_ps(y.m_Data + i, resultv);
+			}
+
+			for (size_t k = y.m_Size - 7; k < y.m_Size; k++)
+			{
+				y.m_Data[k] = a.m_Data[k] + x * b.m_Data[k];
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < y.m_Size; ++i)
+			{
+				y.m_Data[i] = a.m_Data[i] + x * b.m_Data[i];
+			}
 		}
 	}
 
@@ -982,9 +1065,27 @@ namespace maxml
 		}
 	}
 	
-	void Tensor::copy(const Tensor &a, Tensor &y)
+	void Tensor::copy(const Tensor &src, Tensor &dst)
 	{
-		MML_ASSERT(a.m_Size == y.m_Size);
-		std::copy(a.m_Data, a.m_Data + a.m_Size, y.m_Data);
+		MML_ASSERT(dst.m_Size == src.m_Size);
+		std::copy(src.m_Data, src.m_Data + src.m_Size, dst.m_Data);
+	}
+
+	void Tensor::copy(const float *src, size_t size, Tensor &dst)
+	{
+		MML_ASSERT(dst.m_Size == size);
+		std::copy(reinterpret_cast<const float*>(src),
+		          reinterpret_cast<const float*>(src) + size,
+		          dst.m_Data
+		);
+	}
+
+	void Tensor::copy(const Tensor &src, float *dst, size_t size)
+	{
+		MML_ASSERT(size == src.m_Size);
+		std::copy(src.m_Data,
+		          src.m_Data + src.m_Size,
+		          reinterpret_cast<float*>(dst)
+		);
 	}
 }

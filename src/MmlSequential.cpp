@@ -94,16 +94,23 @@ namespace maxml
 
 					std::random_device rd;
 					std::mt19937 mt(rd());
-					std::normal_distribution dist(0.0f, 1.0f);
-
-					float scale = std::sqrtf(1.0f / static_cast<float>(numInputs));
+					float sigma;
+					if (activFunc == ActivationFunc::ReLU)
+					{
+						sigma = std::sqrt(2.0f / static_cast<float>(inRows));
+					}
+					else
+					{
+						sigma = std::sqrt(2.0f / static_cast<float>(inRows + outRows));
+					}
+					std::normal_distribution dist(0.0f, sigma);
 
 					Tensor weights(1, numOutputs, numInputs);
 					Tensor biases(1, numOutputs, 1);
 
 					for (size_t i = 0; i < weights.size(); i++)
 					{
-						weights[i] = dist(mt) * scale;
+						weights[i] = dist(mt);
 					}
 
 					m_Layers.push_back(std::make_shared<FullyConLayer>(std::move(weights), std::move(biases)));
@@ -154,7 +161,8 @@ namespace maxml
 
 					std::random_device rd;
 					std::mt19937 mt(rd());
-					std::normal_distribution dist(0.0f, 1.0f);
+					float sigma = std::sqrt(2.0f / static_cast<float>(outChannels * kernelRows * kernelCols));
+					std::normal_distribution dist(0.0f, sigma);
 
 					Tensor kernel(kernelChannels, kernelRows, kernelCols);
 
@@ -165,7 +173,6 @@ namespace maxml
 
 					m_Layers.push_back(std::make_shared<ConvLayer>(inChannels, outRows, outCols, kernel));
 				}
-
 
 				if (activFunc != ActivationFunc::None)
 				{
@@ -283,11 +290,9 @@ namespace maxml
 				currentLayer->update(m_LearningRate);
 			}
 
-			auto error = Tensor::sumWith(
-							 deltaOutputAt(lastLayerIdx),
-							 [](float x)
-							 { return x * x; }) *
-						 (1.0f / static_cast<float>(numOututs));
+			float error = Tensor::sumWith(deltaOutputAt(lastLayerIdx), [](float x) {
+				return x * x;
+			}) * (1.0f / static_cast<float>(numOututs));
 
 			return error;
 		}

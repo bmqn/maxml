@@ -42,9 +42,11 @@ namespace maxml
 		, DeltaKernelWindowed(inChannels, kernel.channels(), kernel.rows() * kernel.cols())
 		, DeltaInputWindowed(inChannels, kernel.rows() * kernel.cols(), outRows * outCols)
 	{
-		for (size_t iChan = 0; iChan < inChannels; ++iChan)
+		for (size_t chan = 0; chan < inChannels; ++chan)
 		{
-			KernelWindowed.fill(iChan, Tensor::resize(kernel, 1, kernel.channels(), kernel.rows() * kernel.cols()));
+			Tensor::copy(kernel, &KernelWindowed.at(chan),
+			             KernelWindowed.rows() * KernelWindowed.cols()
+			);
 		}
 	}
 
@@ -63,11 +65,9 @@ namespace maxml
 				}
 			}
 		}
-
 		Tensor result = Tensor::matMult(KernelWindowed, InputWindowed);
 		result.resize(output.channels(), output.rows(), output.cols());
 		result.transpose();
-
 		Tensor::copy(result, output);
 	}
 
@@ -75,10 +75,7 @@ namespace maxml
 	{
 		Tensor deltaOutputWindowed = Tensor::transpose(outputDelta);
 		deltaOutputWindowed.resize(inputDelta.channels(), KernelChannels, outputDelta.rows() * outputDelta.cols());
-
-		Tensor::matMult(deltaOutputWindowed, Tensor::transpose(InputWindowed), DeltaKernelWindowed);
 		Tensor::matMult(Tensor::transpose(KernelWindowed), deltaOutputWindowed, DeltaInputWindowed);
-
 		for (size_t winRow = 0; winRow < DeltaInputWindowed.rows(); ++winRow)
 		{
 			for (size_t winCol = 0; winCol < DeltaInputWindowed.cols(); ++winCol)
@@ -92,6 +89,7 @@ namespace maxml
 				}
 			}
 		}
+		Tensor::matMult(deltaOutputWindowed, Tensor::transpose(InputWindowed), DeltaKernelWindowed);
 	}
 
 	void ConvLayer::update(float learningRate)
@@ -194,6 +192,15 @@ namespace maxml
 		case ActivationFunc::ReLU:
 			Tensor::fastRelu(input, output);
 			break;
+		case ActivationFunc::Softmax:
+			float max = Tensor::max(input);
+			float sum = Tensor::sumWith(input, [&](float x) {
+				return std::exp(x - max);
+			});
+			Tensor::mapWith(input, [&](float x) {
+				return std::exp(x - max) / sum;
+			}, output);
+			break;
 		}
 	}
 
@@ -215,6 +222,20 @@ namespace maxml
 			Tensor::zipWith(input, outputDelta, [](float x, float y) {
 				return (reluPrime(x)) * y;
 			}, inputDelta);
+			break;
+		case ActivationFunc::Softmax:
+			Tensor jacobian(input.channels(), output.rows(), output.rows());
+			for (size_t c = 0; c < jacobian.channels(); ++c)
+			{
+				for (size_t i = 0; i < jacobian.rows(); ++i)
+				{
+					for (size_t j = 0; j < jacobian.cols(); ++j)
+					{
+						jacobian(c, i, j) = output(c, i, 0) * (static_cast<float>(i == j) - output(c, j, 0));
+					}
+				}
+			}
+			Tensor::matMult(jacobian, outputDelta, inputDelta);
 			break;
 		}
 	}
