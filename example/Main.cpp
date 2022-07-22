@@ -8,85 +8,96 @@
 #include <string>
 #include <fstream>
 #include <ctime>
+#include <cstdint>
 #include <cmath>
+#include <bit>
 
-static unsigned char **read_mnist_images(std::string full_path, int &number_of_images, int &image_size)
+static uint8_t **ReadMnistImagesFile(std::string path, int32_t &numImages, int32_t &imageWidth, int32_t &imageHeight)
 {
-	auto reverseInt = [](int i)
+	auto ByteSwap = [](int32_t num)
 	{
-		unsigned char c1, c2, c3, c4;
-		c1 = i & 255, c2 = (i >> 8) & 255, c3 = (i >> 16) & 255, c4 = (i >> 24) & 255;
-		return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
+		int32_t result = (num & 0x0000FFFF) << 16 | (num & 0xFFFF0000) >> 16;
+		result = (result & 0x00FF00FF) << 8 | (result & 0xFF00FF00) >> 8;
+		return result;
 	};
 
-	typedef unsigned char uchar;
-
-	std::ifstream file(full_path, std::ios::binary);
-
-	if (file.is_open())
+	std::ifstream f(path, std::ios::binary);
+	if (f.is_open())
 	{
-		int magic_number = 0, n_rows = 0, n_cols = 0;
-
-		file.read((char *)&magic_number, sizeof(magic_number));
-		magic_number = reverseInt(magic_number);
-
-		if (magic_number != 2051)
-			throw std::runtime_error("Invalid MNIST image file!");
-
-		file.read((char *)&number_of_images, sizeof(number_of_images)), number_of_images = reverseInt(number_of_images);
-		file.read((char *)&n_rows, sizeof(n_rows)), n_rows = reverseInt(n_rows);
-		file.read((char *)&n_cols, sizeof(n_cols)), n_cols = reverseInt(n_cols);
-
-		image_size = n_rows * n_cols;
-
-		uchar **_dataset = new uchar *[number_of_images];
-		for (int i = 0; i < number_of_images; i++)
+		int32_t magicNum = 0;
+		f.read((char *)&magicNum, sizeof(magicNum));
+		if constexpr (std::endian::native == std::endian::little)
 		{
-			_dataset[i] = new uchar[image_size];
-			file.read((char *)_dataset[i], image_size);
+			magicNum = ByteSwap(magicNum);
 		}
-		return _dataset;
+		if (magicNum != 2051)
+		{
+			return nullptr;
+		}
+
+		f.read((char *)&numImages, sizeof(numImages));
+		f.read((char *)&imageWidth, sizeof(imageWidth));
+		f.read((char *)&imageHeight, sizeof(imageHeight));
+		if constexpr (std::endian::native == std::endian::little)
+		{
+			numImages = ByteSwap(numImages);
+			imageWidth = ByteSwap(imageWidth);
+			imageHeight = ByteSwap(imageHeight);
+		}
+
+		uint8_t **imageData = new uint8_t*[numImages];
+		for (int i = 0; i < numImages; ++i)
+		{
+			imageData[i] = new uint8_t[imageWidth * imageHeight];
+			f.read((char*)imageData[i], imageWidth * imageHeight);
+		}
+		return imageData;
 	}
 	else
 	{
-		throw std::runtime_error("Cannot open file `" + full_path + "`!");
+		return nullptr;
 	}
 }
 
-static unsigned char *read_mnist_labels(std::string full_path, int &number_of_labels)
+static uint8_t *ReadMnistLabelsFile(std::string path, int32_t& numLabels)
 {
-	auto reverseInt = [](int i)
+	auto ByteSwap = [](int32_t num)
 	{
-		unsigned char c1, c2, c3, c4;
-		c1 = i & 255, c2 = (i >> 8) & 255, c3 = (i >> 16) & 255, c4 = (i >> 24) & 255;
-		return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
+		int32_t result = (num & 0x0000FFFF) << 16 | (num & 0xFFFF0000) >> 16;
+		result = (result & 0x00FF00FF) << 8 | (result & 0xFF00FF00) >> 8;
+		return result;
 	};
 
-	typedef unsigned char uchar;
-
-	std::ifstream file(full_path, std::ios::binary);
-
-	if (file.is_open())
+	std::ifstream f(path, std::ios::binary);
+	if (f.is_open())
 	{
-		int magic_number = 0;
-		file.read((char *)&magic_number, sizeof(magic_number));
-		magic_number = reverseInt(magic_number);
-
-		if (magic_number != 2049)
-			throw std::runtime_error("Invalid MNIST label file!");
-
-		file.read((char *)&number_of_labels, sizeof(number_of_labels)), number_of_labels = reverseInt(number_of_labels);
-
-		uchar *_dataset = new uchar[number_of_labels];
-		for (int i = 0; i < number_of_labels; i++)
+		int32_t magicNum = 0;
+		f.read((char*)&magicNum, sizeof(magicNum));
+		if constexpr (std::endian::native == std::endian::little)
 		{
-			file.read((char *)&_dataset[i], 1);
+			magicNum = ByteSwap(magicNum);
 		}
-		return _dataset;
+		if (magicNum != 2049)
+		{
+			return nullptr;
+		}
+
+		f.read((char*)&numLabels, sizeof(numLabels));
+		if constexpr (std::endian::native == std::endian::little)
+		{
+			numLabels = ByteSwap(numLabels);
+		}
+
+		uint8_t *labelData = new uint8_t[numLabels];
+		for (int i = 0; i < numLabels; ++i)
+		{
+			f.read((char*)&labelData[i], 1);
+		}
+		return labelData;
 	}
 	else
 	{
-		throw std::runtime_error("Unable to open file `" + full_path + "`!");
+		return nullptr;
 	}
 }
 
@@ -205,12 +216,13 @@ static void MnistExample()
 
 	maxml::SequentialDesc seqDesc;
 	seqDesc.ObjectiveFunc = maxml::LossFunc::CrossEntropy;
-	seqDesc.LearningRate = 0.001f;
+	seqDesc.LearningRate = 0.0005f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 28, 28),
-		maxml::makeConv(16, 5, 5, maxml::ActivationFunc::ReLU),
+		maxml::makeConv(32, 3, 3, maxml::ActivationFunc::ReLU),
+		maxml::makePool(2, 2, maxml::PoolingFunc::Max),
+		maxml::makeConv(32, 3, 3, maxml::ActivationFunc::ReLU),
 		maxml::makeFlatten(),
-		maxml::makeFullCon(128, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(64, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(10, maxml::ActivationFunc::Softmax)
 	};
@@ -219,13 +231,20 @@ static void MnistExample()
 
 	{
 		int numTrainImages;
-		int trainImageSize;
+		int trainImageWidth;
+		int trainImageHeight;
 		int numTrainLabels;
 
-		unsigned char **trainImages = read_mnist_images("train-images.idx3-ubyte", numTrainImages, trainImageSize);
-		unsigned char *trainLabels = read_mnist_labels("train-labels.idx1-ubyte", numTrainLabels);
+		unsigned char **trainImages = ReadMnistImagesFile("train-images.idx3-ubyte", numTrainImages, trainImageWidth, trainImageHeight);
+		unsigned char *trainLabels = ReadMnistLabelsFile("train-labels.idx1-ubyte", numTrainLabels);
 
-		int trainImageWidth = static_cast<int>(std::sqrt(static_cast<float>(trainImageSize)));
+		if (trainImages == nullptr || trainLabels == nullptr)
+		{
+			std::cout << "Could not load training MNIST database!" << std::endl;
+			return;
+		}
+
+		int trainImageSize = trainImageWidth * trainImageHeight;
 
 		std::vector<std::pair<maxml::Tensor, maxml::Tensor>> trainData;
 
@@ -279,13 +298,20 @@ static void MnistExample()
 
 	{
 		int numTestImages;
-		int testImageSize;
+		int testImageWidth;
+		int testImageHeight;
 		int numTestLabels;
 
-		unsigned char **testImages = read_mnist_images("../res/t10k-images.idx3-ubyte", numTestImages, testImageSize);
-		unsigned char *testLabels = read_mnist_labels("../res/t10k-labels.idx1-ubyte", numTestLabels);
+		unsigned char **testImages = ReadMnistImagesFile("../res/t10k-images.idx3-ubyte", numTestImages, testImageWidth, testImageHeight);
+		unsigned char *testLabels = ReadMnistLabelsFile("../res/t10k-labels.idx1-ubyte", numTestLabels);
 
-		int testImageWidth = static_cast<int>(std::sqrt(static_cast<float>(testImageSize)));
+		if (testImages == nullptr || testLabels == nullptr)
+		{
+			std::cout << "Could not load testing MNIST database!" << std::endl;
+			return;
+		}
+
+		int testImageSize = testImageWidth * testImageHeight;
 
 		std::vector<std::pair<maxml::Tensor, maxml::Tensor>> testData;
 
