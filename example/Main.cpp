@@ -105,6 +105,18 @@ static void RegressionExample()
 {
 	srand(static_cast<unsigned int>(time(nullptr)));
 
+	maxml::SequentialDesc seqDesc;
+	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
+	seqDesc.LearningRate = 0.01f;
+	seqDesc.LayerDescs = {
+		maxml::makeInput(1, 1, 1),
+		maxml::makeFullCon(16, maxml::ActivationFunc::ReLU),
+		maxml::makeFullCon(16, maxml::ActivationFunc::ReLU),
+		maxml::makeFullCon(16, maxml::ActivationFunc::ReLU),
+		maxml::makeFullCon(1, maxml::ActivationFunc::None)
+	};
+	maxml::Sequential seq(seqDesc);
+
 	auto func = [](float x) -> float
 	{
 		// y = 2^(sin(5x^3)) - x^2
@@ -114,9 +126,7 @@ static void RegressionExample()
 	float step = 0.05f;
 	float lower = -1.0f;
 	float upper = 1.0f;
-
 	float supremum = -std::numeric_limits<float>::infinity();
-
 	for (float x = lower; x <= upper; x += step)
 	{
 		float y = func(x);
@@ -137,27 +147,14 @@ static void RegressionExample()
 		}
 	}
 
-	std::vector<std::pair<maxml::Tensor, maxml::Tensor>> data;
-
-	for (float x = lower; x <= upper; x += step)
 	{
-		data.emplace_back(maxml::Tensor{x},
-						  maxml::Tensor{func(x) / supremum});
-	}
+		std::vector<std::pair<maxml::Tensor, maxml::Tensor>> trainData;
+		for (float x = lower; x <= upper; x += step)
+		{
+			trainData.emplace_back(maxml::Tensor{x},
+							maxml::Tensor{func(x) / supremum});
+		}
 
-	maxml::SequentialDesc seqDesc;
-	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.01f;
-	seqDesc.LayerDescs = {
-		maxml::makeInput(1, 1, 1),
-		maxml::makeFullCon(16, maxml::ActivationFunc::ReLU),
-		maxml::makeFullCon(8, maxml::ActivationFunc::Tanh),
-		maxml::makeFullCon(1, maxml::ActivationFunc::None)
-	};
-
-	maxml::Sequential seq(seqDesc);
-
-	{
 		static constexpr size_t kNumIterations = 100000;
 		static constexpr size_t kErrHistCount = 1000;
 		std::vector<float> errHist;
@@ -166,16 +163,16 @@ static void RegressionExample()
 		std::cout << "Training for " << kNumIterations << " iterations..." << std::endl;
 		for (int itr = 0; itr < kNumIterations; ++itr)
 		{
-			int choice = rand() % data.size();
+			int choice = rand() % trainData.size();
 
-			const maxml::Tensor &inp = data[choice].first;
-			const maxml::Tensor &exp = data[choice].second;
+			const auto &out = seq.feedForward(trainData[choice].first);
+			auto err = seq.feedBackward(trainData[choice].second);
 
-			seq.feedForward(inp);
-			errHist.push_back(seq.feedBackward(exp));
-
-			size_t cumErrCount = errHist.size() < kErrHistCount ? errHist.size() : kErrHistCount;
+			errHist.push_back(err);
 			float cumErr = 0.0;
+			size_t cumErrCount = errHist.size() < kErrHistCount
+				? errHist.size()
+				: kErrHistCount;
 			for (size_t count = 0; count < cumErrCount; ++count)
 			{
 				cumErr += errHist[errHist.size() - cumErrCount + count];
@@ -224,9 +221,9 @@ static void MnistExample()
 		maxml::makeConv(32, 3, 3, maxml::ActivationFunc::ReLU),
 		maxml::makeFlatten(),
 		maxml::makeFullCon(64, maxml::ActivationFunc::ReLU),
+		maxml::makeFullCon(64, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(10, maxml::ActivationFunc::Softmax)
 	};
-
 	maxml::Sequential seq(seqDesc);
 
 	{
@@ -270,7 +267,7 @@ static void MnistExample()
 		delete[] trainImages;
 		delete[] trainLabels;
 
-		static constexpr size_t kNumIterations = 10000;
+		static constexpr size_t kNumIterations = 50000;
 		static constexpr size_t kErrHistCount = 1000;
 		std::vector<float> errHist;
 		errHist.reserve(kNumIterations);
@@ -280,11 +277,14 @@ static void MnistExample()
 		{
 			int choice = rand() % numTrainImages;
 
-			auto out = seq.feedForward(trainData[choice].first);
-			errHist.push_back(seq.feedBackward(trainData[choice].second));
+			const auto &out = seq.feedForward(trainData[choice].first);
+			auto err = seq.feedBackward(trainData[choice].second);
 
-			size_t cumErrCount = errHist.size() < kErrHistCount ? errHist.size() : kErrHistCount;
+			errHist.push_back(err);
 			float cumErr = 0.0;
+			size_t cumErrCount = errHist.size() < kErrHistCount
+				? errHist.size()
+				: kErrHistCount;
 			for (size_t count = 0; count < cumErrCount; ++count)
 			{
 				cumErr += errHist[errHist.size() - cumErrCount + count];
@@ -346,9 +346,9 @@ static void MnistExample()
 		{
 			int choice = rand() % numTestImages;
 
-			const maxml::Tensor &inp = testData[choice].first;
-			const maxml::Tensor &exp = testData[choice].second;
-			const maxml::Tensor &out = seq.feedForward(inp);
+			const auto &inp = testData[choice].first;
+			const auto &exp = testData[choice].second;
+			const auto &out = seq.feedForward(inp);
 
 			float currentMax = -std::numeric_limits<float>::infinity();
 			int expected = 0;
