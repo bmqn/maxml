@@ -216,9 +216,10 @@ static void MnistExample()
 	seqDesc.LearningRate = 0.0005f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 28, 28),
-		maxml::makeConv(32, 3, 3, maxml::ActivationFunc::ReLU),
+		maxml::makeConv(32, 5, 5, maxml::ActivationFunc::ReLU),
 		maxml::makePool(2, 2, maxml::PoolingFunc::Max),
 		maxml::makeConv(32, 3, 3, maxml::ActivationFunc::ReLU),
+		maxml::makePool(2, 2, maxml::PoolingFunc::Max),
 		maxml::makeFlatten(),
 		maxml::makeFullCon(64, maxml::ActivationFunc::ReLU),
 		maxml::makeFullCon(64, maxml::ActivationFunc::ReLU),
@@ -267,7 +268,7 @@ static void MnistExample()
 		delete[] trainImages;
 		delete[] trainLabels;
 
-		static constexpr size_t kNumIterations = 50000;
+		static constexpr size_t kNumIterations = 500000;
 		static constexpr size_t kErrHistCount = 1000;
 		std::vector<float> errHist;
 		errHist.reserve(kNumIterations);
