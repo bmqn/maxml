@@ -3,8 +3,8 @@
 #include "maxml/MmlTensor.h"
 
 #include <vector>
-#include <memory>
 #include <variant>
+#include <memory>
 
 namespace maxml
 {
@@ -54,7 +54,6 @@ namespace maxml
 			}
 		]
 	}
-
 	*/
 
 	struct Layer;

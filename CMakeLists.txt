@@ -30,7 +30,6 @@ add_link_options(
 )
 endif()
 
-
 #--------------------------------------------------------------------------------------------------
 #	Sources
 #--------------------------------------------------------------------------------------------------
@@ -40,16 +39,17 @@ set(MML_HSP
 )
 
 set(MML_SRC
-	"${MML_INC_DIR}/maxml/MmlTensor.h"
-	"${MML_INC_DIR}/maxml/MmlSequential.h"
+	"${MML_SRC_DIR}/MmlPrefix.pch"
 
 	"${MML_SRC_DIR}/MmlConfig.h"
 	"${MML_SRC_DIR}/MmlLog.h"
+	"${MML_SRC_DIR}/MmlUtils.h"
 	"${MML_SRC_DIR}/MmlLayer.h"
 	"${MML_SRC_DIR}/MmlLayer.cpp"
+	"${MML_INC_DIR}/maxml/MmlSequential.h"
 	"${MML_SRC_DIR}/MmlSequential.cpp"
+	"${MML_INC_DIR}/maxml/MmlTensor.h"
 	"${MML_SRC_DIR}/MmlTensor.cpp"
-	"${MML_SRC_DIR}/MmlActivations.h"
 )
 
 source_group("Include" FILES ${MML_HSP})
@@ -69,6 +69,11 @@ target_include_directories(
 	maxml
 	PUBLIC  ${MML_INC_DIR}
 	PRIVATE ${MML_SRC_DIR}
+)
+
+target_precompile_headers(
+	maxml
+	PRIVATE "${MML_SRC_DIR}/MmlPrefix.pch"
 )
 
 add_executable(

@@ -1,0 +1,28 @@
+#ifndef H_MML_PREFIX_H
+#define H_MML_PREFIX_H
+
+#include <cmath>
+#include <ctime>
+#include <cstdint>
+#include <cstring>
+
+#include <string>
+#include <vector>
+#include <array>
+
+#include <ostream>
+#include <sstream>
+#include <fstream>
+#include <iostream>
+
+#include <memory>
+#include <functional>
+#include <algorithm>
+#include <iomanip>
+#include <random>
+#include <limits>
+
+#include "MmlConfig.h"
+#include "MmlLog.h"
+
+#endif // H_MML_PREFIX_H

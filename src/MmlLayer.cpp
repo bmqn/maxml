@@ -1,8 +1,5 @@
 #include "MmlLayer.h"
-#include "MmlActivations.h"
-#include "MmlLog.h"
-
-#include "maxml/MmlTensor.h"
+#include "MmlUtils.h"
 
 namespace maxml
 {

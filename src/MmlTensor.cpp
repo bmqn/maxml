@@ -1,14 +1,5 @@
 #include "maxml/MmlTensor.h"
-
 #include "MmlLog.h"
-#include "MmlActivations.h"
-
-#include <string>
-#include <sstream>
-#include <iomanip>
-#include <cstring>
-#include <iostream>
-#include <functional>
 
 #include <immintrin.h>
 

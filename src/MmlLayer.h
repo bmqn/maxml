@@ -3,11 +3,6 @@
 #include "maxml/MmlTensor.h"
 #include "maxml/MmlSequential.h"
 
-#include "MmlLog.h"
-
-#include <cstdint>
-#include <memory>
-
 namespace maxml
 {
 	struct Layer

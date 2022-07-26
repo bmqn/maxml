@@ -1,11 +1,7 @@
 #pragma once
 
-#include <cmath>
-
 namespace maxml
 {
-	// TODO: Optimise these functions.
-
 	static float sig(float x)
 	{
 		return 1.0f / (1.0f + std::exp(-x));

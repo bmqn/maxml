@@ -3,6 +3,7 @@
 #include <string>
 #include <ostream>
 #include <functional>
+#include <initializer_list>
 
 namespace maxml
 {

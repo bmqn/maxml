@@ -1,13 +1,12 @@
-#pragma once
-
-#include "MmlConfig.h"
-
-#include <iostream>
+#ifndef H_MML_LOG_H
+#define H_MML_LOG_H
 
 #define _MML_EXPAND(x) x
 #define _MML_VARGS(_9, _8, _7, _6, _5, _4, _3, _2, _1, N, ...) N
 
-// ----- Logging -----
+//-------------------------------------------------------------------------------------------------
+//	Logging
+//-------------------------------------------------------------------------------------------------
 #if MML_LOGGING
 
 #define _MML_LOGI1(format)                                    \
@@ -43,7 +42,9 @@ do                    \
 
 #endif // MML_LOGGING
 
-// --- Assertions ---
+//-------------------------------------------------------------------------------------------------
+//	Assertions
+//-------------------------------------------------------------------------------------------------
 #if MML_ASSERTION
 
 #define _MML_ASSERT1(condition)                                    \
@@ -100,3 +101,5 @@ do                      \
 } while (0)
 
 #endif // MML_ASSERTION
+
+#endif
