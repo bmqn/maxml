@@ -69,8 +69,7 @@ namespace maxml
 
 	enum class PoolingFunc
 	{
-		Max = 0,
-		Average = 1
+		Max = 0
 	};
 
 	enum class LossFunc
@@ -88,46 +87,44 @@ namespace maxml
 		Flatten = 4
 	};
 
-	struct InputLayerDesc
+	struct InputDesc
 	{
 		size_t Channels = 0;
 		size_t Rows = 0;
 		size_t Cols = 0;
 	};
 
-	struct FullConLayerDesc
+	struct FullyConnectedDesc
 	{
 		size_t NumOutputs = 0;
-		ActivationFunc ActivFunc = ActivationFunc::None;
+		ActivationFunc ActivationFunc = ActivationFunc::None;
 	};
 
-	struct ConvLayerDesc
+	struct ConvolutionalDesc
 	{
 		size_t NumKernels = 8;
 		size_t KernelWidth = 3;
 		size_t KernelHeight = 3;
-		ActivationFunc ActivFunc = ActivationFunc::None;
+		ActivationFunc ActivationFunc = ActivationFunc::None;
 	};
 
-	struct PoolLayerDesc
+	struct PoolingDesc
 	{
 		size_t TileWidth = 2;
 		size_t TileHeight = 2;
 		PoolingFunc PoolFunc = PoolingFunc::Max;
 	};
 
-	struct FlattenLayerDesc
-	{
-	};
+	struct FlattenDesc {};
 
 	struct SequentialDesc
 	{
 		using LayerDesc = std::variant<
-			InputLayerDesc,	  // Input
-			FullConLayerDesc, // FullyConnected
-			ConvLayerDesc,	  // Convolutional
-			PoolLayerDesc,	  // Pooling
-			FlattenLayerDesc  // Flatten
+			InputDesc,          // Input
+			FullyConnectedDesc, // FullyConnected
+			ConvolutionalDesc,  // Convolutional
+			PoolingDesc,        // Pooling
+			FlattenDesc         // Flatten
 		>;
 
 		LossFunc ObjectiveFunc = LossFunc::MSE;
@@ -136,17 +133,15 @@ namespace maxml
 
 		static LayerKind getLayerKind(size_t index)
 		{
-			// TODO: Some kind of way to verify the order here..
-			//       maybe use macros in some way.
 			return static_cast<LayerKind>(index);
 		}
 	};
 
-	InputLayerDesc makeInput(size_t channels, size_t rows, size_t cols);
-	FullConLayerDesc makeFullCon(size_t numOutputs, ActivationFunc activFunc);
-	ConvLayerDesc makeConv(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activFunc);
-	PoolLayerDesc makePool(size_t tileWidth, size_t tileHeight, PoolingFunc poolFunc);
-	FlattenLayerDesc makeFlatten();
+	InputDesc makeInput(size_t channels, size_t rows, size_t cols);
+	FullyConnectedDesc makeFullyConnected(size_t numOutputs, ActivationFunc activFunc);
+	ConvolutionalDesc makeConvolutional(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activFunc);
+	PoolingDesc makePooling(size_t tileWidth, size_t tileHeight, PoolingFunc poolFunc);
+	FlattenDesc makeFlatten();
 
 	class Sequential
 	{

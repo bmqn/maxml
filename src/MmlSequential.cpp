@@ -4,27 +4,27 @@
 
 namespace maxml
 {
-	InputLayerDesc makeInput(size_t channels, size_t rows, size_t cols)
+	InputDesc makeInput(size_t channels, size_t rows, size_t cols)
 	{
 		return { channels, rows, cols };
 	}
 
-	FullConLayerDesc makeFullCon(size_t numOutputs, ActivationFunc activFunc)
+	FullyConnectedDesc makeFullyConnected(size_t numOutputs, ActivationFunc activationFunc)
 	{
-		return { numOutputs, activFunc };
+		return { numOutputs, activationFunc };
 	}
 
-	ConvLayerDesc makeConv(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activFunc)
+	ConvolutionalDesc makeConvolutional(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activationFunc)
 	{
-		return { numKernels, kernelWidth, kernelHeight, activFunc };
+		return { numKernels, kernelWidth, kernelHeight, activationFunc };
 	}
 
-	PoolLayerDesc makePool(size_t tileWidth, size_t tileHeight, PoolingFunc poolFunc)
+	PoolingDesc makePooling(size_t tileWidth, size_t tileHeight, PoolingFunc poolingFunc)
 	{
-		return { tileWidth, tileHeight, poolFunc };
+		return { tileWidth, tileHeight, poolingFunc };
 	}
 
-	FlattenLayerDesc makeFlatten()
+	FlattenDesc makeFlatten()
 	{
 		return {};
 	}
@@ -43,33 +43,50 @@ namespace maxml
 		size_t outRows = 0;
 		size_t outCols = 0;
 
+		auto MakeInputOutputPair = [&]() {
+			m_Data.push_back(std::make_pair(
+				m_Data.empty()
+				? std::make_shared<Tensor>(inChannels, inRows, inCols)
+				: m_Data.back().second,
+				std::make_shared<Tensor>(outChannels, outRows, outCols)
+			));
+		};
+
+		auto MakeDeltaInputOutputPair = [&]() {
+			m_Delta.push_back(std::make_pair(
+				m_Delta.empty()
+				? std::make_shared<Tensor>(inChannels, inRows, inCols)
+				: m_Delta.back().second,
+				std::make_shared<Tensor>(outChannels, outRows, outCols)
+			));
+		};
+
 		for (auto it = sequentialDesc.LayerDescs.begin(); it != sequentialDesc.LayerDescs.end(); it++)
 		{
 			SequentialDesc::LayerDesc layerDesc = *it;
 
-			switch (SequentialDesc::getLayerKind(layerDesc.index()))
-			{
-			case LayerKind::Input:
+			if (std::holds_alternative<InputDesc>(layerDesc))
 			{
 				MML_ASSERT(it == sequentialDesc.LayerDescs.begin(), "Cannot have more than one input layer!");
 
-				InputLayerDesc inpLayerDesc = std::get<InputLayerDesc>(layerDesc);
+				InputDesc inpLayerDesc = std::get<InputDesc>(layerDesc);
 
-				inChannels = outChannels = inpLayerDesc.Channels;
-				inRows = outRows = inpLayerDesc.Rows;
-				inCols = outCols = inpLayerDesc.Cols;
+				inChannels = inpLayerDesc.Channels;
+				inRows = inpLayerDesc.Rows;
+				inCols = inpLayerDesc.Cols;
 
-				break;
+				outChannels = inpLayerDesc.Channels;
+				outRows = inpLayerDesc.Rows;
+				outCols = inpLayerDesc.Cols;
 			}
-			case LayerKind::FullyConnected:
+			else if (std::holds_alternative<FullyConnectedDesc>(layerDesc))
 			{
 				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
 
-				FullConLayerDesc fcLayerDesc = std::get<FullConLayerDesc>(layerDesc);
-
+				FullyConnectedDesc fcLayerDesc = std::get<FullyConnectedDesc>(layerDesc);
 				size_t numInputs = outRows;
 				size_t numOutputs = fcLayerDesc.NumOutputs;
-				ActivationFunc activFunc = fcLayerDesc.ActivFunc;
+				ActivationFunc activFunc = fcLayerDesc.ActivationFunc;
 
 				inChannels = outChannels;
 				inRows = outRows;
@@ -79,17 +96,8 @@ namespace maxml
 				outRows = numOutputs;
 				outCols = 1;
 
+				// Fully connected layer
 				{
-					std::shared_ptr<Tensor> input = m_Data.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Data.back().second;
-					std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Data.push_back(std::make_pair(input, output));
-
-					std::shared_ptr<Tensor> inputDelta = m_Delta.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Delta.back().second;
-					std::shared_ptr<Tensor> outputDelta = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
-					std::random_device rd;
-					std::mt19937 mt(rd());
 					float sigma;
 					if (activFunc == ActivationFunc::ReLU)
 					{
@@ -99,43 +107,44 @@ namespace maxml
 					{
 						sigma = std::sqrt(2.0f / static_cast<float>(inRows + outRows));
 					}
+					std::random_device rd;
+					std::mt19937 mt(rd());
 					std::normal_distribution dist(0.0f, sigma);
 
 					Tensor weights(1, numOutputs, numInputs);
-					Tensor biases(1, numOutputs, 1);
-
 					for (size_t i = 0; i < weights.size(); i++)
 					{
 						weights[i] = dist(mt);
 					}
+					Tensor biases(1, numOutputs, 1);
 
-					m_Layers.push_back(std::make_shared<FullyConLayer>(std::move(weights), std::move(biases)));
+					m_Layers.push_back(std::make_shared<FullyConnectedLayer>(std::move(weights), std::move(biases)));
+
+					MakeInputOutputPair();
+					MakeDeltaInputOutputPair();
 				}
 
+				inChannels = outChannels;
+				inRows = outRows;
+				inCols = outCols;
+
+				// Activation
 				{
-					std::shared_ptr<Tensor> input = m_Data.back().second;
-					std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Data.push_back(std::make_pair(input, output));
+					m_Layers.push_back(std::make_shared<ActivationLayer>(activFunc));
 
-					std::shared_ptr<Tensor> inputDelta = m_Delta.back().second;
-					std::shared_ptr<Tensor> outputDelta = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
-					m_Layers.push_back(std::make_shared<ActvLayer>(activFunc));
+					MakeInputOutputPair();
+					MakeDeltaInputOutputPair();
 				}
-
-				break;
 			}
-			case LayerKind::Convolutional:
+			else if (std::holds_alternative<ConvolutionalDesc>(layerDesc))
 			{
 				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
 
-				ConvLayerDesc convLayerDesc = std::get<ConvLayerDesc>(layerDesc);
-
+				ConvolutionalDesc convLayerDesc = std::get<ConvolutionalDesc>(layerDesc);
 				size_t kernelChannels = convLayerDesc.NumKernels;
 				size_t kernelRows = convLayerDesc.KernelWidth;
 				size_t kernelCols = convLayerDesc.KernelHeight;
-				ActivationFunc activFunc = convLayerDesc.ActivFunc;
+				ActivationFunc activFunc = convLayerDesc.ActivationFunc;
 
 				inChannels = outChannels;
 				inRows = outRows;
@@ -145,51 +154,42 @@ namespace maxml
 				outRows = (inRows - kernelRows) + 1;
 				outCols = (inCols - kernelCols) + 1;
 
+				// Convolutional layer
 				{
-					std::shared_ptr<Tensor> input = m_Data.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Data.back().second;
-					std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Data.push_back(std::make_pair(input, output));
-
-					std::shared_ptr<Tensor> inputDelta = m_Delta.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Delta.back().second;
-					std::shared_ptr<Tensor> outputDelta = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
+					float sigma = std::sqrt(2.0f / static_cast<float>(outChannels * kernelRows * kernelCols));
 					std::random_device rd;
 					std::mt19937 mt(rd());
-					float sigma = std::sqrt(2.0f / static_cast<float>(outChannels * kernelRows * kernelCols));
 					std::normal_distribution dist(0.0f, sigma);
 
 					Tensor kernel(kernelChannels, kernelRows, kernelCols);
-
 					for (size_t i = 0; i < kernel.size(); ++i)
 					{
 						kernel[i] = dist(mt);
 					}
 
-					m_Layers.push_back(std::make_shared<ConvLayer>(inChannels, outRows, outCols, kernel));
+					m_Layers.push_back(std::make_shared<ConvolutionalLayer>(inChannels, outRows, outCols, kernel));
+
+					MakeInputOutputPair();
+					MakeDeltaInputOutputPair();
 				}
 
+				inChannels = outChannels;
+				inRows = outRows;
+				inCols = outCols;
+
+				// Activation
 				{
-					std::shared_ptr<Tensor> input = m_Data.back().second;
-					std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Data.push_back(std::make_pair(input, output));
+					m_Layers.push_back(std::make_shared<ActivationLayer>(activFunc));
 
-					std::shared_ptr<Tensor> inputDelta = m_Delta.back().second;
-					std::shared_ptr<Tensor> outputDelta = std::make_shared<Tensor>(outChannels, outRows, outCols);
-					m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
-					m_Layers.push_back(std::make_shared<ActvLayer>(activFunc));
+					MakeInputOutputPair();
+					MakeDeltaInputOutputPair();
 				}
-
-				break;
 			}
-			case LayerKind::Polling:
+			else if (std::holds_alternative<PoolingDesc>(layerDesc))
 			{
 				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
 
-				PoolLayerDesc poolLayerDesc = std::get<PoolLayerDesc>(layerDesc);
-				MML_ASSERT(poolLayerDesc.PoolFunc != PoolingFunc::Average, "Average pooling is not implemented yet!");
-
+				PoolingDesc poolLayerDesc = std::get<PoolingDesc>(layerDesc);
 				size_t tileWidth = poolLayerDesc.TileWidth;
 				size_t tileHeight = poolLayerDesc.TileHeight;
 
@@ -201,23 +201,16 @@ namespace maxml
 				outRows = ((inRows - tileWidth) / tileWidth) + 1;
 				outCols = ((inCols - tileHeight) / tileHeight) + 1;
 
-				std::shared_ptr<Tensor> input = m_Data.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Data.back().second;
-				std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
-				m_Data.push_back(std::make_pair(input, output));
+				m_Layers.push_back(std::make_shared<MaxPoolingLayer>(tileWidth, tileHeight));
 
-				std::shared_ptr<Tensor> inputDelta = m_Delta.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Delta.back().second;
-				std::shared_ptr<Tensor> outputDelta = std::make_shared<Tensor>(outChannels, outRows, outCols);
-				m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
-				m_Layers.push_back(std::make_shared<MaxPoolLayer>(tileWidth, tileHeight));
-
-				break;
+				MakeInputOutputPair();
+				MakeDeltaInputOutputPair();
 			}
-			case LayerKind::Flatten:
+			else if (std::holds_alternative<FlattenDesc>(layerDesc))
 			{
 				MML_ASSERT(it != sequentialDesc.LayerDescs.begin(), "Must start with an input layer!");
 
-				FlattenLayerDesc flattenLayerDesc = std::get<FlattenLayerDesc>(layerDesc);
+				FlattenDesc flattenLayerDesc = std::get<FlattenDesc>(layerDesc);
 
 				inChannels = outChannels;
 				inRows = outRows;
@@ -227,18 +220,14 @@ namespace maxml
 				outRows = inChannels * inRows * inCols;
 				outCols = 1;
 
-				std::shared_ptr<Tensor> input = m_Data.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Data.back().second;
-				std::shared_ptr<Tensor> output = std::make_shared<Tensor>(outChannels, outRows, outCols);
-				m_Data.push_back(std::make_pair(input, output));
-
-				std::shared_ptr<Tensor> inputDelta = m_Delta.empty() ? std::make_shared<Tensor>(inChannels, inRows, inCols) : m_Delta.back().second;
-				std::shared_ptr<Tensor> outputDelta = std::make_shared<Tensor>(outChannels, outRows, outCols);
-				m_Delta.push_back(std::make_pair(inputDelta, outputDelta));
-
 				m_Layers.push_back(std::make_shared<FlattenLayer>());
 
-				break;
+				MakeInputOutputPair();
+				MakeDeltaInputOutputPair();
 			}
+			else
+			{
+				MML_ASSERT(false, "Unhandled layer description!");
 			}
 		}
 	}

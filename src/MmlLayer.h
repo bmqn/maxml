@@ -15,10 +15,10 @@ namespace maxml
 		virtual void update(float learningRate) = 0;
 	};
 
-	struct FullyConLayer : public Layer
+	struct FullyConnectedLayer : public Layer
 	{
-		FullyConLayer() = delete;
-		FullyConLayer(Tensor &&weights, Tensor &&biases);
+		FullyConnectedLayer() = delete;
+		FullyConnectedLayer(Tensor &&weights, Tensor &&biases);
 
 		virtual void forward(const Tensor &input, Tensor &output) override;
 		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
@@ -32,10 +32,10 @@ namespace maxml
 		Tensor Biases;
 	};
 
-	struct ConvLayer : public Layer
+	struct ConvolutionalLayer : public Layer
 	{
-		ConvLayer() = delete;
-		ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel);
+		ConvolutionalLayer() = delete;
+		ConvolutionalLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel);
 
 		virtual void forward(const Tensor &input, Tensor &output) override;
 		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
@@ -53,15 +53,15 @@ namespace maxml
 		Tensor DeltaInputWindowed;
 	};
 
-	struct MaxPoolLayer : public Layer
+	struct MaxPoolingLayer : public Layer
 	{
-		MaxPoolLayer() = delete;
-		MaxPoolLayer(size_t tileWidth, size_t tileHeight);
+		MaxPoolingLayer() = delete;
+		MaxPoolingLayer(size_t tileWidth, size_t tileHeight);
 
 		virtual void forward(const Tensor &input, Tensor &output) override;
 		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
-		virtual void update(float learningRate) override{};
+		virtual void update(float learningRate) override {};
 
 		size_t TileWidth;
 		size_t TileHeight;
@@ -72,18 +72,18 @@ namespace maxml
 		virtual void forward(const Tensor &input, Tensor &output) override;
 		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
-		virtual void update(float learningRate) override{};
+		virtual void update(float learningRate) override {};
 	};
 
-	struct ActvLayer : public Layer
+	struct ActivationLayer : public Layer
 	{
-		ActvLayer() = delete;
-		ActvLayer(ActivationFunc activation);
+		ActivationLayer() = delete;
+		ActivationLayer(ActivationFunc activation);
 
 		virtual void forward(const Tensor &input, Tensor &output) override;
 		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
-		virtual void update(float learningRate) override{};
+		virtual void update(float learningRate) override {};
 
 		ActivationFunc Activation;
 	};

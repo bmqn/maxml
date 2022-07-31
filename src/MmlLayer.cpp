@@ -3,7 +3,7 @@
 
 namespace maxml
 {
-	FullyConLayer::FullyConLayer(Tensor &&weights, Tensor &&biases)
+	FullyConnectedLayer::FullyConnectedLayer(Tensor &&weights, Tensor &&biases)
 		: DeltaWeights(weights.channels(), weights.rows(), weights.cols())
 		, DeltaBiases(weights.channels(), weights.rows(), 1)
 		, Weights(std::forward<Tensor>(weights))
@@ -11,26 +11,26 @@ namespace maxml
 	{
 	}
 
-	void FullyConLayer::forward(const Tensor &input, Tensor &output)
+	void FullyConnectedLayer::forward(const Tensor &input, Tensor &output)
 	{
 		Tensor::matMult(Weights, input, output);
 		Tensor::add(output, Biases, output);
 	}
 
-	void FullyConLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
+	void FullyConnectedLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
 		Tensor::matMult(Tensor::transpose(Weights), outputDelta, inputDelta);
 		Tensor::matMult(outputDelta, Tensor::transpose(input), DeltaWeights);
 		Tensor::copy(outputDelta, DeltaBiases);
 	}
 
-	void FullyConLayer::update(float learningRate)
+	void FullyConnectedLayer::update(float learningRate)
 	{
 		Tensor::aMinusXMultB(Weights, DeltaWeights, learningRate, Weights);
 		Tensor::aMinusXMultB(Biases, DeltaBiases, learningRate, Biases);
 	}
 
-	ConvLayer::ConvLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel)
+	ConvolutionalLayer::ConvolutionalLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel)
 		: KernelChannels(kernel.channels())
 		, KernelRows(kernel.rows())
 		, KernelCols(kernel.cols())
@@ -47,7 +47,7 @@ namespace maxml
 		}
 	}
 
-	void ConvLayer::forward(const Tensor &input, Tensor &output)
+	void ConvolutionalLayer::forward(const Tensor &input, Tensor &output)
 	{
 		for (size_t winRow = 0; winRow < InputWindowed.rows(); ++winRow)
 		{
@@ -68,7 +68,7 @@ namespace maxml
 		Tensor::copy(result, output);
 	}
 
-	void ConvLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
+	void ConvolutionalLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
 		Tensor deltaOutputWindowed = Tensor::transpose(outputDelta);
 		deltaOutputWindowed.resize(inputDelta.channels(), KernelChannels, outputDelta.rows() * outputDelta.cols());
@@ -89,18 +89,18 @@ namespace maxml
 		Tensor::matMult(deltaOutputWindowed, Tensor::transpose(InputWindowed), DeltaKernelWindowed);
 	}
 
-	void ConvLayer::update(float learningRate)
+	void ConvolutionalLayer::update(float learningRate)
 	{
 		Tensor::aMinusXMultB(KernelWindowed, DeltaKernelWindowed, learningRate, KernelWindowed);
 	}
 
-	MaxPoolLayer::MaxPoolLayer(size_t tileWidth, size_t tileHeight)
+	MaxPoolingLayer::MaxPoolingLayer(size_t tileWidth, size_t tileHeight)
 		: TileWidth(tileWidth)
 		, TileHeight(tileHeight)
 	{
 	}
 
-	void MaxPoolLayer::forward(const Tensor &input, Tensor &output)
+	void MaxPoolingLayer::forward(const Tensor &input, Tensor &output)
 	{
 		for (size_t iChan = 0; iChan < output.channels(); ++iChan)
 		{
@@ -129,7 +129,7 @@ namespace maxml
 		}
 	}
 
-	void MaxPoolLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
+	void MaxPoolingLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
 		inputDelta.fill(0.0);
 
@@ -169,12 +169,12 @@ namespace maxml
 		Tensor::copy(outputDelta, inputDelta);
 	}
 
-	ActvLayer::ActvLayer(ActivationFunc activation)
+	ActivationLayer::ActivationLayer(ActivationFunc activation)
 		: Activation(activation)
 	{
 	}
 
-	void ActvLayer::forward(const Tensor &input, Tensor &output)
+	void ActivationLayer::forward(const Tensor &input, Tensor &output)
 	{
 		switch (Activation)
 		{
@@ -204,7 +204,7 @@ namespace maxml
 		}
 	}
 
-	void ActvLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
+	void ActivationLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
 		switch (Activation)
 		{
