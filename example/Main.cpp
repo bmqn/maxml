@@ -120,7 +120,7 @@ static void RegressionExample()
 	auto func = [](float x) -> float
 	{
 		// y = 2^(sin(5x^3)) - x^2
-		return std::powf(2.f, std::sinf(5.f * x * x * x)) - x * x;
+		return std::pow(2.f, std::sin(5.f * x * x * x)) - x * x;
 	};
 
 	float step = 0.05f;
