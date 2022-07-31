@@ -78,13 +78,13 @@ namespace maxml
 	struct ActivationLayer : public Layer
 	{
 		ActivationLayer() = delete;
-		ActivationLayer(ActivationFunc activation);
+		ActivationLayer(ActivationFunc activFunc);
 
 		virtual void forward(const Tensor &input, Tensor &output) override;
 		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;
 
 		virtual void update(float learningRate) override {};
 
-		ActivationFunc Activation;
+		ActivationFunc ActivFunc;
 	};
 }

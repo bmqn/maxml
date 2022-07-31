@@ -9,14 +9,14 @@ namespace maxml
 		return { channels, rows, cols };
 	}
 
-	FullyConnectedDesc makeFullyConnected(size_t numOutputs, ActivationFunc activationFunc)
+	FullyConnectedDesc makeFullyConnected(size_t numOutputs, ActivationFunc activFunc)
 	{
-		return { numOutputs, activationFunc };
+		return { numOutputs, activFunc };
 	}
 
-	ConvolutionalDesc makeConvolutional(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activationFunc)
+	ConvolutionalDesc makeConvolutional(size_t numKernels, size_t kernelWidth, size_t kernelHeight, ActivationFunc activFunc)
 	{
-		return { numKernels, kernelWidth, kernelHeight, activationFunc };
+		return { numKernels, kernelWidth, kernelHeight, activFunc };
 	}
 
 	PoolingDesc makePooling(size_t tileWidth, size_t tileHeight, PoolingFunc poolingFunc)
@@ -86,7 +86,7 @@ namespace maxml
 				FullyConnectedDesc fcLayerDesc = std::get<FullyConnectedDesc>(layerDesc);
 				size_t numInputs = outRows;
 				size_t numOutputs = fcLayerDesc.NumOutputs;
-				ActivationFunc activFunc = fcLayerDesc.ActivationFunc;
+				ActivationFunc activFunc = fcLayerDesc.ActivFunc;
 
 				inChannels = outChannels;
 				inRows = outRows;
@@ -144,7 +144,7 @@ namespace maxml
 				size_t kernelChannels = convLayerDesc.NumKernels;
 				size_t kernelRows = convLayerDesc.KernelWidth;
 				size_t kernelCols = convLayerDesc.KernelHeight;
-				ActivationFunc activFunc = convLayerDesc.ActivationFunc;
+				ActivationFunc activFunc = convLayerDesc.ActivFunc;
 
 				inChannels = outChannels;
 				inRows = outRows;

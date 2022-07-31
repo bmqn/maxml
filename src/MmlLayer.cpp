@@ -169,14 +169,14 @@ namespace maxml
 		Tensor::copy(outputDelta, inputDelta);
 	}
 
-	ActivationLayer::ActivationLayer(ActivationFunc activation)
-		: Activation(activation)
+	ActivationLayer::ActivationLayer(ActivationFunc activFunc)
+		: ActivFunc(activFunc)
 	{
 	}
 
 	void ActivationLayer::forward(const Tensor &input, Tensor &output)
 	{
-		switch (Activation)
+		switch (ActivFunc)
 		{
 		case ActivationFunc::None:
 			Tensor::copy(input, output);
@@ -206,7 +206,7 @@ namespace maxml
 
 	void ActivationLayer::backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta)
 	{
-		switch (Activation)
+		switch (ActivFunc)
 		{
 		case ActivationFunc::None:
 			Tensor::copy(outputDelta, inputDelta);

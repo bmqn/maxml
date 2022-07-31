@@ -97,7 +97,7 @@ namespace maxml
 	struct FullyConnectedDesc
 	{
 		size_t NumOutputs = 0;
-		ActivationFunc ActivationFunc = ActivationFunc::None;
+		ActivationFunc ActivFunc = ActivationFunc::None;
 	};
 
 	struct ConvolutionalDesc
@@ -105,7 +105,7 @@ namespace maxml
 		size_t NumKernels = 8;
 		size_t KernelWidth = 3;
 		size_t KernelHeight = 3;
-		ActivationFunc ActivationFunc = ActivationFunc::None;
+		ActivationFunc ActivFunc = ActivationFunc::None;
 	};
 
 	struct PoolingDesc
