@@ -72,9 +72,9 @@ seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
 seqDesc.LearningRate = 0.1f;
 seqDesc.LayerDescs = {
 	maxml::makeInput(1, 1, 1),
-	maxml::makeFullCon(16, maxml::ActivationFunc::Tanh),
-	maxml::makeFullCon(8, maxml::ActivationFunc::Tanh),
-	maxml::makeFullCon(1, maxml::ActivationFunc::None)
+	maxml::makeFullyConnected(16, maxml::ActivationFunc::Tanh),
+	maxml::makeFullyConnected(8, maxml::ActivationFunc::Tanh),
+	maxml::makeFullyConnected(1, maxml::ActivationFunc::None)
 };
 
 maxml::Sequential seq(seqDesc);
