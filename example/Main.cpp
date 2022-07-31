@@ -110,10 +110,10 @@ static void RegressionExample()
 	seqDesc.LearningRate = 0.01f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 1, 1),
-		maxml::makeFullyConnected(16, maxml::ActivFunc::ReLU),
-		maxml::makeFullyConnected(16, maxml::ActivFunc::ReLU),
-		maxml::makeFullyConnected(16, maxml::ActivFunc::ReLU),
-		maxml::makeFullyConnected(1, maxml::ActivFunc::None)
+		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
+		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
+		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
+		maxml::makeFullyConnected(1, maxml::ActivationFunc::None)
 	};
 	maxml::Sequential seq(seqDesc);
 
@@ -216,14 +216,14 @@ static void MnistExample()
 	seqDesc.LearningRate = 0.0005f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 28, 28),
-		maxml::makeConvolutional(32, 5, 5, maxml::ActivFunc::ReLU),
+		maxml::makeConvolutional(32, 5, 5, maxml::ActivationFunc::ReLU),
 		maxml::makePooling(2, 2, maxml::PoolingFunc::Max),
-		maxml::makeConvolutional(32, 3, 3, maxml::ActivFunc::ReLU),
+		maxml::makeConvolutional(32, 3, 3, maxml::ActivationFunc::ReLU),
 		maxml::makePooling(2, 2, maxml::PoolingFunc::Max),
 		maxml::makeFlatten(),
-		maxml::makeFullyConnected(64, maxml::ActivFunc::ReLU),
-		maxml::makeFullyConnected(64, maxml::ActivFunc::ReLU),
-		maxml::makeFullyConnected(10, maxml::ActivFunc::Softmax)
+		maxml::makeFullyConnected(64, maxml::ActivationFunc::ReLU),
+		maxml::makeFullyConnected(64, maxml::ActivationFunc::ReLU),
+		maxml::makeFullyConnected(10, maxml::ActivationFunc::Softmax)
 	};
 	maxml::Sequential seq(seqDesc);
 
