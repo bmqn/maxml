@@ -55,7 +55,6 @@ do                    \
 			fprintf(stdout, "[ERROR] %s:%d ", __FILE__, __LINE__); \
 			fprintf(stdout, "Assertion failed!");                  \
 			fprintf(stdout, "\n");                                 \
-			__debugbreak();                                        \
 		}                                                          \
 	} while (0)
 
@@ -68,7 +67,6 @@ do                    \
 			fprintf(stdout, "Assertion failed! ");                 \
 			fprintf(stdout, format);                               \
 			fprintf(stdout, "\n");                                 \
-			__debugbreak();                                        \
 		}                                                          \
 	} while (0)
 
@@ -81,7 +79,6 @@ do                    \
 			fprintf(stdout, "Assertion failed! ");                 \
 			fprintf(stdout, format, __VA_ARGS__);                  \
 			fprintf(stdout, "\n");                                 \
-			__debugbreak();                                        \
 		}                                                          \
 	} while (0)
 

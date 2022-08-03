@@ -23,6 +23,7 @@ add_link_options(
 )
 else()
 add_compile_options(
+	-mavx
 	$<$<CONFIG:RELEASE>:-Ofast>
 )
 add_link_options(
