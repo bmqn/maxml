@@ -107,12 +107,12 @@ static void RegressionExample()
 
 	maxml::SequentialDesc seqDesc;
 	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.01f;
+	seqDesc.LearningRate = 0.005f;
 	seqDesc.LayerDescs = {
 		maxml::makeInput(1, 1, 1),
 		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
 		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
-		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
+		maxml::makeFullyConnected(16, maxml::ActivationFunc::Tanh),
 		maxml::makeFullyConnected(1, maxml::ActivationFunc::None)
 	};
 	maxml::Sequential seq(seqDesc);
@@ -155,7 +155,7 @@ static void RegressionExample()
 							maxml::Tensor{func(x) / supremum});
 		}
 
-		static constexpr size_t kNumIterations = 100000;
+		static constexpr size_t kNumIterations = 500000;
 		static constexpr size_t kErrHistCount = 1000;
 		std::vector<float> errHist;
 		errHist.reserve(kNumIterations);
@@ -384,8 +384,8 @@ static void MnistExample()
 
 int main(void)
 {
-	// RegressionExample();
-	MnistExample();
+	RegressionExample();
+	// MnistExample();
 
 	return 0;
 }
