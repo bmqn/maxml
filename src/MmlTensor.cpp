@@ -373,8 +373,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 resultv = _mm256_add_ps(av, bv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -408,8 +408,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 resultv = _mm256_add_ps(av, bv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -442,8 +442,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 resultv = _mm256_sub_ps(av, bv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -477,8 +477,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 resultv = _mm256_sub_ps(av, bv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -511,7 +511,7 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
 				__m256 resultv = _mm256_mul_ps(av, sv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -546,7 +546,7 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
 				__m256 resultv = _mm256_mul_ps(av, sv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -582,8 +582,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 resultv = _mm256_mul_ps(av, bv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -617,8 +617,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 resultv = _mm256_mul_ps(av, bv);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
@@ -673,8 +673,8 @@ namespace maxml
 
 						for (size_t k = 0; k < a.m_Cols - 7; k += 8)
 						{
-							__m256 av = _mm256_load_ps(a_cik + k);
-							__m256 bv = _mm256_load_ps(b_ckj + k);
+							__m256 av = _mm256_loadu_ps(a_cik + k);
+							__m256 bv = _mm256_loadu_ps(b_ckj + k);
 							__m256 abv = _mm256_mul_ps(av, bv);
 
 							__m128 hiQuadv = _mm256_extractf128_ps(abv, 1);
@@ -746,8 +746,8 @@ namespace maxml
 
 						for (size_t k = 0; k < a.m_Cols - 7; k += 8)
 						{
-							__m256 av = _mm256_load_ps(a_cik + k);
-							__m256 bv = _mm256_load_ps(b_ckj + k);
+							__m256 av = _mm256_loadu_ps(a_cik + k);
+							__m256 bv = _mm256_loadu_ps(b_ckj + k);
 							__m256 abv = _mm256_mul_ps(av, bv);
 
 							__m128 hiQuadv = _mm256_extractf128_ps(abv, 1);
@@ -925,8 +925,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 xbv = _mm256_mul_ps(xv, bv);
 				__m256 resultv = _mm256_add_ps(av, xbv);
 
@@ -961,8 +961,8 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
-				__m256 bv = _mm256_load_ps(b.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
+				__m256 bv = _mm256_loadu_ps(b.m_Data + i);
 				__m256 xbv = _mm256_mul_ps(xv, bv);
 				__m256 resultv = _mm256_sub_ps(av, xbv);
 
@@ -998,7 +998,7 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
 				__m256 halfav = _mm256_mul_ps(av, halfv);
 				__m256 zerominusav = _mm256_sub_ps(zerov, av);
 				__m256 absav = _mm256_max_ps(av, zerominusav);
@@ -1036,7 +1036,7 @@ namespace maxml
 
 			for (size_t i = 0; i < y.m_Size - 7; i += 8)
 			{
-				__m256 av = _mm256_load_ps(a.m_Data + i);
+				__m256 av = _mm256_loadu_ps(a.m_Data + i);
 				__m256 resultv = _mm256_max_ps(av, zerov);
 
 				_mm256_store_ps(y.m_Data + i, resultv);
