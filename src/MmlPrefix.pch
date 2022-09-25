@@ -1,5 +1,4 @@
-#ifndef H_MML_PREFIX_H
-#define H_MML_PREFIX_H
+#pragma once
 
 #include <cmath>
 #include <ctime>
@@ -24,5 +23,3 @@
 
 #include "MmlConfig.h"
 #include "MmlLog.h"
-
-#endif // H_MML_PREFIX_H
