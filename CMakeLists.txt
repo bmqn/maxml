@@ -51,6 +51,8 @@ set(MML_SRC
 	"${MML_SRC_DIR}/MmlSequential.cpp"
 	"${MML_INC_DIR}/maxml/MmlTensor.h"
 	"${MML_SRC_DIR}/MmlTensor.cpp"
+	"${MML_SRC_DIR}/MmlSerialization.h"
+	"${MML_SRC_DIR}/MmlSerialization.cpp"
 )
 
 source_group("Include" FILES ${MML_HSP})

@@ -267,6 +267,16 @@ namespace maxml
 		return m_Data[channel * (m_Rows * m_Cols) + row * m_Cols + col];
 	}
 
+	float *Tensor::data()
+	{
+		return m_Data;
+	}
+
+	const float *Tensor::data() const
+	{
+		return m_Data;
+	}
+
 	std::string Tensor::str() const
 	{
 		std::ostringstream ss;
@@ -1062,7 +1072,7 @@ namespace maxml
 		std::copy(src.m_Data, src.m_Data + src.m_Size, dst.m_Data);
 	}
 
-	void Tensor::copy(const float *src, size_t size, Tensor &dst)
+	void Tensor::copy(Tensor &dst, const float *src, size_t size)
 	{
 		MML_ASSERT(dst.m_Size == size);
 		std::copy(reinterpret_cast<const float*>(src),
@@ -1071,7 +1081,7 @@ namespace maxml
 		);
 	}
 
-	void Tensor::copy(const Tensor &src, float *dst, size_t size)
+	void Tensor::copy(float *dst, size_t size, const Tensor &src)
 	{
 		MML_ASSERT(size == src.m_Size);
 		std::copy(src.m_Data,

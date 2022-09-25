@@ -41,8 +41,9 @@ namespace maxml
 	{
 		for (size_t chan = 0; chan < inChannels; ++chan)
 		{
-			Tensor::copy(kernel, &KernelWindowed.at(chan),
-			             KernelWindowed.rows() * KernelWindowed.cols()
+			Tensor::copy(
+				&KernelWindowed.at(chan), KernelWindowed.rows() * KernelWindowed.cols(),
+				kernel
 			);
 		}
 	}

@@ -58,6 +58,9 @@ namespace maxml
 		float &at(size_t channel, size_t row, size_t col);
 		const float &at(size_t channel, size_t row, size_t col) const;
 
+		float *data();
+		const float *data() const;
+
 		std::string str() const;
 
 	public:
@@ -97,8 +100,8 @@ namespace maxml
 		static void fastRelu(const Tensor &a, Tensor &y);
 
 		static void copy(const Tensor &dst, Tensor &src);
-		static void copy(const float *src, size_t size, Tensor &dst);
-		static void copy(const Tensor &src, float *dst, size_t size);
+		static void copy(Tensor &dst, const float *src, size_t size);
+		static void copy(float *dst, size_t size, const Tensor &src);
 	};
 
 	inline std::ostream &operator<<(std::ostream &os, const Tensor &tensor)
