@@ -20,7 +20,7 @@ namespace maxml
 		}
 		else
 		{
-			MML_ASSERT(false, "Could not open path '%s' binary writer !", m_Path.c_str());
+			MML_ASSERT(false, "Binary writer could not open path '%s' !", m_Path.c_str());
 		}
 
 		delete[] m_Data;
@@ -51,9 +51,9 @@ namespace maxml
 		*reinterpret_cast<size_t *>(&m_Data[m_Bytes]) = value.cols();
 		m_Bytes += sizeof(size_t);
 
-		std::copy(
-			value.data(), value.data() + value.size(),
-			reinterpret_cast<float *>(&m_Data[m_Bytes])
+		Tensor::copy(
+			reinterpret_cast<float *>(&m_Data[m_Bytes]), value.size(),
+			value
 		);
 		m_Bytes += value.size() * sizeof(float);
 	}
@@ -61,7 +61,7 @@ namespace maxml
 	void BinaryWriter::resize(size_t size)
 	{
 		uint8_t *data = new uint8_t[size];
-		MML_ASSERT(data != nullptr, "Failed to allocate memory for binary writer!");
+		MML_ASSERT(data != nullptr, "Binary writer failed to allocate memory !");
 		
 		if (m_Data)
 		{
@@ -86,7 +86,7 @@ namespace maxml
 			f.seekg(0);
 
 			uint8_t *data = new uint8_t[size];
-			MML_ASSERT(data != nullptr, "Failed to allocate memory for binary reader!");
+			MML_ASSERT(data != nullptr, "Binary reader failed to allocate memory !");
 			
 			f.read(reinterpret_cast<char *>(data), size);
 
@@ -96,7 +96,7 @@ namespace maxml
 		}
 		else
 		{
-			MML_ASSERT(false, "Could not open path '%s' binary reader !", path.c_str());
+			MML_ASSERT(false, "Binary reader could not open path '%s' !", path.c_str());
 		}
 	}
 
@@ -118,7 +118,7 @@ namespace maxml
 			+ (value.size() * sizeof(float));
 		if (newBytes > m_Size)
 		{
-			MML_ASSERT(false, "Attempt to read out of buffer for binary reader !");
+			MML_ASSERT(false, "Binary reader attempted to read out of buffer !");
 			return;
 		}
 
@@ -131,12 +131,18 @@ namespace maxml
 		size_t cols = *reinterpret_cast<size_t *>(&m_Data[m_Bytes]);
 		m_Bytes += sizeof(size_t);
 
-		value.resize(channels, rows, cols);
+		if (channels * rows * cols <= 0)
+		{
+			MML_ASSERT(false, "Binary reader read invalid tensor size !");
+			m_Bytes -= 3 * sizeof(size_t);
+			return;
+		}
 
+		value.resize(channels, rows, cols);
 		Tensor::copy(
 			value, 
 			reinterpret_cast<float *>(&m_Data[m_Bytes]), channels * rows * cols
 		);
-		m_Bytes += value.size() * sizeof(float);	
+		m_Bytes += value.size() * sizeof(float);
 	}
 }
