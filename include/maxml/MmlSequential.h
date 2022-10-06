@@ -10,7 +10,7 @@ namespace maxml
 {
 	/*
 	* TODO: Describe a network with a json or xml file.
-	*       See the json file below for an idea of how this might work.
+	* See the json file below for an idea of how this might work.
 	*
 
 	{
@@ -130,11 +130,6 @@ namespace maxml
 		LossFunc ObjectiveFunc = LossFunc::MSE;
 		float LearningRate = 0.1f;
 		std::vector<LayerDesc> LayerDescs = {};
-
-		static LayerKind getLayerKind(size_t index)
-		{
-			return static_cast<LayerKind>(index);
-		}
 	};
 
 	InputDesc makeInput(size_t channels, size_t rows, size_t cols);
@@ -147,7 +142,8 @@ namespace maxml
 	{
 	public:
 		Sequential() = delete;
-		Sequential(const SequentialDesc &sequentialDesc);
+		Sequential(const SequentialDesc &description);
+		Sequential(const std::string &path);
 
 		Sequential(const Sequential &other) = delete;
 		Sequential(const Sequential &&other) = delete;
@@ -157,7 +153,12 @@ namespace maxml
 		const Tensor &feedForward(const Tensor &input);
 		float feedBackward(const Tensor &expected);
 
+		void save(const std::string &path);
+
 	private:
+		void construct(const std::string &path);
+		void construct(const SequentialDesc &description);
+
 		const Tensor &dataInputAt(size_t index) const;
 		const Tensor &dataOutputAt(size_t index) const;
 		const Tensor &deltaInputAt(size_t index) const;
@@ -169,17 +170,12 @@ namespace maxml
 		Tensor &deltaOutputAt(size_t index);
 
 	private:
-		// Each layer has a pair of tensors for input and output, respectively
+		// Each layer has a pair of tensors for input and output, respectively.
+		// The output and input of two sequential layers point to the same tensor.
 		std::vector<std::pair<std::shared_ptr<Tensor>, std::shared_ptr<Tensor>>> m_Data;
 		std::vector<std::pair<std::shared_ptr<Tensor>, std::shared_ptr<Tensor>>> m_Delta;
 		std::vector<std::shared_ptr<Layer>> m_Layers;
 
-		// TODO: This should probably be specified with an 'output' layer
-		LossFunc m_ObjectiveFunc;
-
-		// TODO: This should probably be associated with some kind of 'optimizer' object
-		float m_LearningRate;
-
-		SequentialDesc m_SequentialDesc;
+		SequentialDesc m_Description;
 	};
 }

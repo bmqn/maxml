@@ -36,6 +36,7 @@ namespace maxml
 	{
 		ConvolutionalLayer() = delete;
 		ConvolutionalLayer(size_t inChannels, size_t outRows, size_t outCols, const Tensor &kernel);
+		ConvolutionalLayer(size_t inChannels, size_t outRows, size_t outCols, size_t kernelChannels, size_t kernelRows, size_t kernelCols, const Tensor &kernelWindowed);
 
 		virtual void forward(const Tensor &input, Tensor &output) override;
 		virtual void backward(const Tensor &input, const Tensor &output, Tensor &inputDelta, const Tensor &outputDelta) override;

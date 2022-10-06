@@ -48,6 +48,17 @@ namespace maxml
 		}
 	}
 
+	ConvolutionalLayer::ConvolutionalLayer(size_t inChannels, size_t outRows, size_t outCols, size_t kernelChannels, size_t kernelRows, size_t kernelCols, const Tensor &kernelWindowed)
+		: KernelChannels(kernelChannels)
+		, KernelRows(kernelRows)
+		, KernelCols(kernelCols)
+		, KernelWindowed(kernelWindowed)
+		, InputWindowed(inChannels, kernelRows * kernelCols, outRows * outCols)
+		, DeltaKernelWindowed(inChannels, kernelChannels, kernelRows * kernelCols)
+		, DeltaInputWindowed(inChannels, kernelRows * kernelCols, outRows * outCols)
+	{
+	}
+
 	void ConvolutionalLayer::forward(const Tensor &input, Tensor &output)
 	{
 		for (size_t winRow = 0; winRow < InputWindowed.rows(); ++winRow)
