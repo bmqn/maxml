@@ -105,17 +105,18 @@ static void RegressionExample()
 {
 	srand(static_cast<unsigned int>(time(nullptr)));
 
-	maxml::SequentialDesc seqDesc;
-	seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
-	seqDesc.LearningRate = 0.005f;
-	seqDesc.LayerDescs = {
-		maxml::makeInput(1, 1, 1),
-		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
-		maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
-		maxml::makeFullyConnected(16, maxml::ActivationFunc::Tanh),
-		maxml::makeFullyConnected(1, maxml::ActivationFunc::None)
-	};
-	maxml::Sequential seq(seqDesc);
+	// maxml::SequentialDesc seqDesc;
+	// seqDesc.ObjectiveFunc = maxml::LossFunc::MSE;
+	// seqDesc.LearningRate = 0.005f;
+	// seqDesc.LayerDescs = {
+	// 	maxml::makeInput(1, 1, 1),
+	// 	maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
+	// 	maxml::makeFullyConnected(16, maxml::ActivationFunc::ReLU),
+	// 	maxml::makeFullyConnected(16, maxml::ActivationFunc::Tanh),
+	// 	maxml::makeFullyConnected(1, maxml::ActivationFunc::None)
+	// };
+	// maxml::Sequential seq(seqDesc);
+	maxml::Sequential seq("regression.nn");
 
 	auto func = [](float x) -> float
 	{
@@ -205,27 +206,30 @@ static void RegressionExample()
 
 		std::cout << ss.str();
 	}
+
+	seq.save("regression.nn");
 }
 
 static void MnistExample()
 {
 	srand(static_cast<unsigned int>(time(nullptr)));
 
-	maxml::SequentialDesc seqDesc;
-	seqDesc.ObjectiveFunc = maxml::LossFunc::CrossEntropy;
-	seqDesc.LearningRate = 0.0005f;
-	seqDesc.LayerDescs = {
-		maxml::makeInput(1, 28, 28),
-		maxml::makeConvolutional(32, 5, 5, maxml::ActivationFunc::ReLU),
-		maxml::makePooling(2, 2, maxml::PoolingFunc::Max),
-		maxml::makeConvolutional(32, 3, 3, maxml::ActivationFunc::ReLU),
-		maxml::makePooling(2, 2, maxml::PoolingFunc::Max),
-		maxml::makeFlatten(),
-		maxml::makeFullyConnected(64, maxml::ActivationFunc::ReLU),
-		maxml::makeFullyConnected(64, maxml::ActivationFunc::ReLU),
-		maxml::makeFullyConnected(10, maxml::ActivationFunc::Softmax)
-	};
-	maxml::Sequential seq(seqDesc);
+	// maxml::SequentialDesc seqDesc;
+	// seqDesc.ObjectiveFunc = maxml::LossFunc::CrossEntropy;
+	// seqDesc.LearningRate = 0.0005f;
+	// seqDesc.LayerDescs = {
+	// 	maxml::makeInput(1, 28, 28),
+	// 	maxml::makeConvolutional(32, 5, 5, maxml::ActivationFunc::ReLU),
+	// 	maxml::makePooling(2, 2, maxml::PoolingFunc::Max),
+	// 	maxml::makeConvolutional(32, 3, 3, maxml::ActivationFunc::ReLU),
+	// 	maxml::makePooling(2, 2, maxml::PoolingFunc::Max),
+	// 	maxml::makeFlatten(),
+	// 	maxml::makeFullyConnected(64, maxml::ActivationFunc::ReLU),
+	// 	maxml::makeFullyConnected(64, maxml::ActivationFunc::ReLU),
+	// 	maxml::makeFullyConnected(10, maxml::ActivationFunc::Softmax)
+	// };
+	// maxml::Sequential seq(seqDesc);
+	maxml::Sequential seq("mnist.nn");
 
 	{
 		int numTrainImages;
@@ -268,7 +272,7 @@ static void MnistExample()
 		delete[] trainImages;
 		delete[] trainLabels;
 
-		static constexpr size_t kNumIterations = 500000;
+		static constexpr size_t kNumIterations = 50000;
 		static constexpr size_t kErrHistCount = 1000;
 		std::vector<float> errHist;
 		errHist.reserve(kNumIterations);
@@ -380,12 +384,14 @@ static void MnistExample()
 
 		std::cout << numCorrect << "/" << numTests << " correct guesses, thats " << ((float)numCorrect / (float)numTests) * 100. << "%" << std::endl;
 	}
+
+	seq.save("mnist.nn");
 }
 
 int main(void)
 {
-	RegressionExample();
-	// MnistExample();
+	// RegressionExample();
+	MnistExample();
 
 	return 0;
 }
