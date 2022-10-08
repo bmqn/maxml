@@ -307,8 +307,8 @@ static void MnistExample()
 		int testImageHeight;
 		int numTestLabels;
 
-		unsigned char **testImages = ReadMnistImagesFile("../res/t10k-images.idx3-ubyte", numTestImages, testImageWidth, testImageHeight);
-		unsigned char *testLabels = ReadMnistLabelsFile("../res/t10k-labels.idx1-ubyte", numTestLabels);
+		unsigned char **testImages = ReadMnistImagesFile("t10k-images.idx3-ubyte", numTestImages, testImageWidth, testImageHeight);
+		unsigned char *testLabels = ReadMnistLabelsFile("t10k-labels.idx1-ubyte", numTestLabels);
 
 		if (testImages == nullptr || testLabels == nullptr)
 		{
