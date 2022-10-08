@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MmlConfig.h"
+
 #define _MML_EXPAND(x) x
 #define _MML_VARGS(_9, _8, _7, _6, _5, _4, _3, _2, _1, N, ...) N
 
