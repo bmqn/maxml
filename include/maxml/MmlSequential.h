@@ -58,27 +58,27 @@ namespace maxml
 
 	struct Layer;
 
-	enum class ActivationFunc
+	enum class ActivationFunc : uint32_t
 	{
-		None = -1,
-		Sigmoid = 0,
-		Tanh = 1,
-		ReLU = 2,
-		Softmax = 3
+		None = 0,
+		Sigmoid = 1,
+		Tanh = 2,
+		ReLU = 3,
+		Softmax = 4
 	};
 
-	enum class PoolingFunc
+	enum class PoolingFunc : uint32_t
 	{
 		Max = 0
 	};
 
-	enum class LossFunc
+	enum class LossFunc : uint32_t
 	{
 		MSE = 0,
 		CrossEntropy = 1
 	};
 
-	enum class LayerKind
+	enum class LayerKind : uint32_t
 	{
 		Input = 0,
 		FullyConnected = 1,
@@ -89,33 +89,35 @@ namespace maxml
 
 	struct InputDesc
 	{
-		size_t Channels = 0;
-		size_t Rows = 0;
-		size_t Cols = 0;
+		uint64_t Channels = 0;
+		uint64_t Rows = 0;
+		uint64_t Cols = 0;
 	};
 
 	struct FullyConnectedDesc
 	{
-		size_t NumOutputs = 0;
+		uint64_t NumOutputs = 0;
 		ActivationFunc ActivFunc = ActivationFunc::None;
 	};
 
 	struct ConvolutionalDesc
 	{
-		size_t NumKernels = 8;
-		size_t KernelWidth = 3;
-		size_t KernelHeight = 3;
+		uint64_t NumKernels = 8;
+		uint64_t KernelWidth = 3;
+		uint64_t KernelHeight = 3;
 		ActivationFunc ActivFunc = ActivationFunc::None;
 	};
 
 	struct PoolingDesc
 	{
-		size_t TileWidth = 2;
-		size_t TileHeight = 2;
+		uint64_t TileWidth = 2;
+		uint64_t TileHeight = 2;
 		PoolingFunc PoolFunc = PoolingFunc::Max;
 	};
 
-	struct FlattenDesc {};
+	struct FlattenDesc
+	{
+	};
 
 	struct SequentialDesc
 	{

@@ -107,11 +107,11 @@ namespace maxml
 		bw.write(m_Description.LearningRate);
 
 		size_t layerIndex = 0;
-		for (auto it = m_Description.LayerDescs.begin();
-		    it != m_Description.LayerDescs.end(); it++)
+		for (auto it  = m_Description.LayerDescs.begin();
+		          it != m_Description.LayerDescs.end()  ; it++)
 		{
 			// Layer type encoded using index
-			size_t descVariantIndex = it->index();
+			uint64_t descVariantIndex = it->index();
 			bw.write(descVariantIndex);
 
 			if (std::holds_alternative<InputDesc>(*it))
@@ -161,6 +161,7 @@ namespace maxml
 			else
 			{
 				MML_ASSERT(false, "Unhandled layer description!");
+				layerIndex += 1;
 			}
 		}
 
@@ -218,7 +219,7 @@ namespace maxml
 			}
 
 			// Layer desc type encoded using index
-			size_t descVariantIndex;
+			uint64_t descVariantIndex;
 			br.read(descVariantIndex);
 
 			if (descVariantIndex == variantIndex<SequentialDesc::LayerDesc, InputDesc>())
