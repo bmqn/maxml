@@ -26,36 +26,39 @@ namespace maxml
 		delete[] m_Data;
 	}
 
-	template<>
-	void BinaryWriter::write(const Tensor &value)
+	namespace BinaryWriterImpl
 	{
-		if (m_Data == nullptr)
+		template<>
+		void write(BinaryWriter &writer, const Tensor &value)
 		{
-			MML_ASSERT("Binary writer is not in state to write !");
-			return;
+			if (writer.m_Data == nullptr)
+			{
+				MML_ASSERT("Binary writer is not in state to write !");
+				return;
+			}
+
+			size_t newBytes = writer.m_Bytes + (3 * sizeof(size_t))
+				+ (value.size() * sizeof(float));
+			if (newBytes >= writer.m_Size)
+			{
+				writer.resize(newBytes);
+			}
+			
+			*reinterpret_cast<size_t *>(&writer.m_Data[writer.m_Bytes]) = value.channels();
+			writer.m_Bytes += sizeof(size_t);
+
+			*reinterpret_cast<size_t *>(&writer.m_Data[writer.m_Bytes]) = value.rows();
+			writer.m_Bytes += sizeof(size_t);
+
+			*reinterpret_cast<size_t *>(&writer.m_Data[writer.m_Bytes]) = value.cols();
+			writer.m_Bytes += sizeof(size_t);
+
+			Tensor::copy(
+				reinterpret_cast<float *>(&writer.m_Data[writer.m_Bytes]), value.size(),
+				value
+			);
+			writer.m_Bytes += value.size() * sizeof(float);
 		}
-
-		size_t newBytes = m_Bytes + (3 * sizeof(size_t))
-			+ (value.size() * sizeof(float));
-		if (newBytes >= m_Size)
-		{
-			resize(newBytes);
-		}
-		
-		*reinterpret_cast<size_t *>(&m_Data[m_Bytes]) = value.channels();
-		m_Bytes += sizeof(size_t);
-
-		*reinterpret_cast<size_t *>(&m_Data[m_Bytes]) = value.rows();
-		m_Bytes += sizeof(size_t);
-
-		*reinterpret_cast<size_t *>(&m_Data[m_Bytes]) = value.cols();
-		m_Bytes += sizeof(size_t);
-
-		Tensor::copy(
-			reinterpret_cast<float *>(&m_Data[m_Bytes]), value.size(),
-			value
-		);
-		m_Bytes += value.size() * sizeof(float);
 	}
 
 	void BinaryWriter::resize(size_t size)
@@ -105,44 +108,47 @@ namespace maxml
 		delete[] m_Data;
 	}
 
-	template<>
-	void BinaryReader::read(Tensor &value)
+	namespace BinaryReaderImpl
 	{
-		if (m_Data == nullptr)
+		template<>
+		void read(BinaryReader &reader, Tensor &value)
 		{
-			MML_ASSERT("Binary reader is not in state to read !");
-			return;
+			if (reader.m_Data == nullptr)
+			{
+				MML_ASSERT("Binary reader is not in state to read !");
+				return;
+			}
+
+			size_t newBytes = reader.m_Bytes + (3 * sizeof(size_t))
+				+ (value.size() * sizeof(float));
+			if (newBytes > reader.m_Size)
+			{
+				MML_ASSERT(false, "Binary reader attempted to read out of buffer !");
+				return;
+			}
+
+			size_t channels = *reinterpret_cast<size_t *>(&reader.m_Data[reader.m_Bytes]);
+			reader.m_Bytes += sizeof(size_t);
+
+			size_t rows = *reinterpret_cast<size_t *>(&reader.m_Data[reader.m_Bytes]);
+			reader.m_Bytes += sizeof(size_t);
+
+			size_t cols = *reinterpret_cast<size_t *>(&reader.m_Data[reader.m_Bytes]);
+			reader.m_Bytes += sizeof(size_t);
+
+			if (channels * rows * cols <= 0)
+			{
+				MML_ASSERT(false, "Binary reader read invalid tensor size !");
+				reader.m_Bytes -= 3 * sizeof(size_t);
+				return;
+			}
+
+			value.resize(channels, rows, cols);
+			Tensor::copy(
+				value, 
+				reinterpret_cast<float *>(&reader.m_Data[reader.m_Bytes]), channels * rows * cols
+			);
+			reader.m_Bytes += value.size() * sizeof(float);
 		}
-
-		size_t newBytes = m_Bytes + (3 * sizeof(size_t))
-			+ (value.size() * sizeof(float));
-		if (newBytes > m_Size)
-		{
-			MML_ASSERT(false, "Binary reader attempted to read out of buffer !");
-			return;
-		}
-
-		size_t channels = *reinterpret_cast<size_t *>(&m_Data[m_Bytes]);
-		m_Bytes += sizeof(size_t);
-
-		size_t rows = *reinterpret_cast<size_t *>(&m_Data[m_Bytes]);
-		m_Bytes += sizeof(size_t);
-
-		size_t cols = *reinterpret_cast<size_t *>(&m_Data[m_Bytes]);
-		m_Bytes += sizeof(size_t);
-
-		if (channels * rows * cols <= 0)
-		{
-			MML_ASSERT(false, "Binary reader read invalid tensor size !");
-			m_Bytes -= 3 * sizeof(size_t);
-			return;
-		}
-
-		value.resize(channels, rows, cols);
-		Tensor::copy(
-			value, 
-			reinterpret_cast<float *>(&m_Data[m_Bytes]), channels * rows * cols
-		);
-		m_Bytes += value.size() * sizeof(float);
 	}
 }
